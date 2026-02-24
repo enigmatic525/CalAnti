@@ -38,9 +38,16 @@
         <!-- Chart Section -->
         <section class="chart-section" id="chart-section" aria-label="Weekly Progress Chart">
             <div class="chart-container">
-                <div class="chart-goal-line" id="chart-goal-line"></div>
-                <div class="chart-bars" id="chart-bars">
-                    <!-- Bars inserted by JS -->
+                <div class="chart-plot-area">
+                    <div class="chart-goal-line" id="chart-goal-line">
+                        <span class="chart-goal-label" id="chart-goal-label">Goal = 2000</span>
+                    </div>
+                    <div class="chart-bars" id="chart-bars">
+                        <!-- Bars inserted by JS -->
+                    </div>
+                </div>
+                <div class="chart-labels-row" id="chart-labels-row">
+                    <!-- Labels inserted by JS -->
                 </div>
             </div>
         </section>
@@ -54,10 +61,9 @@
 
         <!-- Main Tracker Section -->
         <section class="main-tracker-section">
-            <div class="tracker-controls">
-                <button class="btn btn-icon-text" id="btn-minus-500" aria-label="Subtract 500 calories">-500</button>
-                <button class="btn btn-icon-text" id="btn-minus-50" aria-label="Subtract 50 calories">-50</button>
-            </div>
+            <button class="btn btn-icon-text outer-btn" id="btn-minus-500"
+                aria-label="Subtract 500 calories">-500</button>
+            <button class="btn btn-icon-text inner-btn" id="btn-minus-50" aria-label="Subtract 50 calories">-50</button>
 
             <div class="tracker-center">
                 <div class="calories-current editable-number" id="calories-current" role="button" tabindex="0"
@@ -65,16 +71,15 @@
                 <div class="tracker-meta">
                     <span class="calories-goal" id="calories-goal" role="button" tabindex="0"
                         title="Click to edit goal">/ 2000</span>
-                    <div class="calories-left-pill">
-                        <span id="calories-left">2000</span> left
+                    <div class="calories-status">
+                        <span id="calories-left">2000 deficit</span>
+                        <button class="btn-info" id="btn-info" aria-label="Info" title="Information">i</button>
                     </div>
                 </div>
             </div>
 
-            <div class="tracker-controls">
-                <button class="btn btn-icon-text" id="btn-plus-50" aria-label="Add 50 calories">+50</button>
-                <button class="btn btn-icon-text" id="btn-plus-500" aria-label="Add 500 calories">+500</button>
-            </div>
+            <button class="btn btn-icon-text inner-btn" id="btn-plus-50" aria-label="Add 50 calories">+50</button>
+            <button class="btn btn-icon-text outer-btn" id="btn-plus-500" aria-label="Add 500 calories">+500</button>
         </section>
 
         <!-- Presets Section -->
@@ -109,6 +114,18 @@
             <div class="modal-actions">
                 <button class="btn btn-secondary" id="btn-cancel-goal">Cancel</button>
                 <button class="btn btn-primary" id="btn-save-goal">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Info -->
+    <div class="modal-overlay" id="info-modal">
+        <div class="modal-content">
+            <h3>Weekly Projection</h3>
+            <p id="info-text" style="color: var(--text-secondary); line-height: 1.5; font-size: 15px;">At this rate, you
+                will maintain your weight.</p>
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="btn-close-info">Got it</button>
             </div>
         </div>
     </div>
