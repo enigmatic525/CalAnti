@@ -1,4 +1,4 @@
-const CACHE_NAME = 'calorie-tracker-v2';
+const CACHE_NAME = 'calorie-tracker-v3';
 const urlsToCache = [
     './',
     './index.html',
@@ -37,13 +37,17 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+    // Network First, Cache Fallback Strategy
     event.respondWith(
-        caches.match(event.request)
-            .then(response => {
-                if (response) {
-                    return response;
-                }
-                return fetch(event.request);
-            })
+        fetch(event.request).then(response => {
+            // Update the cache with the newest version from the network
+            return caches.open(CACHE_NAME).then(cache => {
+                cache.put(event.request, response.clone());
+                return response;
+            });
+        }).catch(() => {
+            // If offline or network fails, fallback to cache
+            return caches.match(event.request);
+        })
     );
 });
