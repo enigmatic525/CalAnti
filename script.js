@@ -1,0 +1,353 @@
+document.addEventListener('DOMContentLoaded', () => {
+    // State
+    const defaultGoal = 2000;
+    const addAmount = 50;
+
+    let state = {
+        goal: defaultGoal,
+        history: {} // format: { 'YYYY-MM-DD': calories }
+    };
+
+    let currentDateString = getTodayDateString();
+    let viewingDateString = currentDateString;
+
+    let presets = [
+        { id: 1, name: 'Apple', calories: 95 },
+        { id: 2, name: 'Banana', calories: 105 },
+        { id: 3, name: 'Coffee', calories: 5 },
+        { id: 4, name: 'Protein Shake', calories: 150 }
+    ];
+
+    // DOM Elements
+    const dateEl = document.getElementById('current-date');
+    const dayLabelEl = document.getElementById('day-label');
+    const caloriesCurrentEl = document.getElementById('calories-current');
+    const caloriesGoalEl = document.getElementById('calories-goal');
+    const caloriesLeftEl = document.getElementById('calories-left');
+    
+    const btnPrevDay = document.getElementById('btn-prev-day');
+    const btnNextDay = document.getElementById('btn-next-day');
+    
+    const btnMinus = document.getElementById('btn-minus');
+    const btnPlus = document.getElementById('btn-plus');
+    const presetsGrid = document.getElementById('presets-grid');
+    
+    const chartBarsEl = document.getElementById('chart-bars');
+    const chartGoalLineEl = document.getElementById('chart-goal-line');
+
+    // Modals
+    const goalModal = document.getElementById('goal-modal');
+    const goalInput = document.getElementById('goal-input');
+    const btnCancelGoal = document.getElementById('btn-cancel-goal');
+    const btnSaveGoal = document.getElementById('btn-save-goal');
+    
+    const presetModal = document.getElementById('preset-modal');
+    const presetNameInput = document.getElementById('preset-name-input');
+    const presetCalInput = document.getElementById('preset-cal-input');
+    const btnAddPreset = document.getElementById('btn-add-preset');
+    const btnCancelPreset = document.getElementById('btn-cancel-preset');
+    const btnSavePreset = document.getElementById('btn-save-preset');
+
+    // Initialization
+    init();
+
+    function init() {
+        loadState();
+        loadPresets();
+        updateDateElements();
+        updateUI();
+        setupEventListeners();
+    }
+
+    function getDateString(d) {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function getTodayDateString() {
+        return getDateString(new Date());
+    }
+
+    function loadState() {
+        const saved = localStorage.getItem('calorieTrackerStateV2');
+        if (saved) {
+            state = JSON.parse(saved);
+        } else {
+            // Migrate from v1
+            const oldSaved = localStorage.getItem('calorieTrackerState');
+            if (oldSaved) {
+                const old = JSON.parse(oldSaved);
+                state.goal = old.goal || defaultGoal;
+                if (old.lastUpdated && typeof old.calories === 'number') {
+                    state.history[old.lastUpdated] = old.calories;
+                }
+            }
+        }
+        // Ensure today is initialized
+        if (typeof state.history[currentDateString] !== 'number') {
+            state.history[currentDateString] = 0;
+        }
+    }
+
+    function saveState() {
+        localStorage.setItem('calorieTrackerStateV2', JSON.stringify(state));
+    }
+
+    function loadPresets() {
+        const savedPresets = localStorage.getItem('calorieTrackerPresets');
+        if (savedPresets) {
+            presets = JSON.parse(savedPresets);
+        }
+        renderPresets();
+    }
+
+    function savePresets() {
+        localStorage.setItem('calorieTrackerPresets', JSON.stringify(presets));
+        renderPresets();
+    }
+
+    function updateDateElements() {
+        const d = new Date(viewingDateString + 'T12:00:00'); 
+        const options = { weekday: 'long', month: 'short', day: 'numeric' };
+        dateEl.textContent = d.toLocaleDateString('en-US', options);
+
+        if (viewingDateString === currentDateString) {
+            dayLabelEl.textContent = 'Today';
+            btnNextDay.disabled = true;
+        } else {
+            const currentD = new Date(currentDateString + 'T12:00:00');
+            const diffTime = currentD.getTime() - d.getTime();
+            const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
+            
+            if (diffDays === 1) {
+                dayLabelEl.textContent = 'Yesterday';
+            } else {
+                dayLabelEl.textContent = `${diffDays} days ago`;
+            }
+            btnNextDay.disabled = false;
+        }
+    }
+
+    function updateUI() {
+        let cals = state.history[viewingDateString] || 0;
+        caloriesCurrentEl.textContent = cals;
+        caloriesGoalEl.textContent = `/ ${state.goal}`;
+        
+        let left = state.goal - cals;
+        if (left < 0) left = 0;
+        caloriesLeftEl.textContent = left;
+
+        renderChart();
+    }
+
+    function renderChart() {
+        chartBarsEl.innerHTML = '';
+        
+        const daysToShow = 7;
+        const historyData = [];
+        
+        // Show 7 days ending on the viewing date
+        let viewD = new Date(viewingDateString + 'T12:00:00');
+        let maxCals = state.goal; 
+        
+        for (let i = daysToShow - 1; i >= 0; i--) {
+            let tempD = new Date(viewD.getTime() - i * 24 * 60 * 60 * 1000);
+            let dStr = getDateString(tempD);
+            let c = state.history[dStr] || 0;
+            if (c > maxCals) maxCals = c;
+            
+            historyData.push({
+                dateStr: dStr,
+                cals: c,
+                label: tempD.toLocaleDateString('en-US', { weekday: 'narrow' })
+            });
+        }
+        
+        // Give 20% headroom
+        const chartMax = maxCals * 1.2;
+        
+        // Goal line percentage
+        const goalPercent = Math.min((state.goal / chartMax) * 100, 100);
+        chartGoalLineEl.style.bottom = `${goalPercent}%`;
+        chartGoalLineEl.style.top = 'auto'; 
+
+        historyData.forEach(item => {
+            const isViewingDay = item.dateStr === viewingDateString;
+            const isOver = item.cals > state.goal;
+            const heightPercent = Math.min((item.cals / chartMax) * 100, 100);
+            
+            const col = document.createElement('div');
+            col.className = `chart-col ${isViewingDay ? 'active' : ''}`;
+            col.style.cursor = 'pointer';
+            
+            // Allow clicking a bar to view that day
+            col.addEventListener('click', () => {
+                viewingDateString = item.dateStr;
+                updateDateElements();
+                updateUI();
+            });
+
+            const barWrapper = document.createElement('div');
+            barWrapper.className = 'chart-bar-wrapper';
+
+            const bar = document.createElement('div');
+            let barClasses = 'chart-bar';
+            if (isViewingDay) barClasses += ' active';
+            else if (isOver) barClasses += ' over';
+            bar.className = barClasses;
+            bar.style.height = `${Math.max(heightPercent, 2)}%`; 
+
+            const label = document.createElement('span');
+            label.className = 'chart-label';
+            label.textContent = item.label;
+
+            barWrapper.appendChild(bar);
+            col.appendChild(barWrapper);
+            col.appendChild(label);
+            chartBarsEl.appendChild(col);
+        });
+    }
+
+    function adjustCalories(amount) {
+        let current = state.history[viewingDateString] || 0;
+        current += amount;
+        if (current < 0) current = 0;
+        
+        state.history[viewingDateString] = current;
+        
+        caloriesCurrentEl.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+            caloriesCurrentEl.style.transform = 'scale(1)';
+        }, 150);
+        
+        saveState();
+        updateUI();
+    }
+
+    function renderPresets() {
+        presetsGrid.innerHTML = '';
+        presets.forEach(preset => {
+            const el = document.createElement('div');
+            el.className = 'preset-card';
+            el.innerHTML = `
+                <div class="preset-info">
+                    <div class="preset-name">${preset.name}</div>
+                    <div class="preset-cal">${preset.calories > 0 ? '+' : ''}${preset.calories}</div>
+                </div>
+                <button class="preset-delete" data-id="${preset.id}" aria-label="Delete preset">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            `;
+            
+            el.addEventListener('click', (e) => {
+                if (e.target.closest('.preset-delete')) return;
+                adjustCalories(preset.calories);
+            });
+
+            const deleteBtn = el.querySelector('.preset-delete');
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                presets = presets.filter(p => p.id !== preset.id);
+                savePresets();
+            });
+
+            presetsGrid.appendChild(el);
+        });
+    }
+
+    function setupEventListeners() {
+        // Day Navigation
+        btnPrevDay.addEventListener('click', () => {
+            const d = new Date(viewingDateString + 'T12:00:00');
+            d.setDate(d.getDate() - 1);
+            viewingDateString = getDateString(d);
+            
+            // Ensure day exists in history
+            if (typeof state.history[viewingDateString] !== 'number') {
+                state.history[viewingDateString] = 0;
+            }
+            
+            updateDateElements();
+            updateUI();
+        });
+
+        btnNextDay.addEventListener('click', () => {
+            if (btnNextDay.disabled) return;
+            const d = new Date(viewingDateString + 'T12:00:00');
+            d.setDate(d.getDate() + 1);
+            viewingDateString = getDateString(d);
+            
+            // Ensure day exists in history
+            if (typeof state.history[viewingDateString] !== 'number') {
+                state.history[viewingDateString] = 0;
+            }
+
+            updateDateElements();
+            updateUI();
+        });
+
+        // Quick Actions
+        btnMinus.addEventListener('click', () => adjustCalories(-addAmount));
+        btnPlus.addEventListener('click', () => adjustCalories(addAmount));
+
+        // Goal Modal
+        caloriesGoalEl.addEventListener('click', () => {
+            goalInput.value = state.goal;
+            goalModal.classList.add('active');
+            setTimeout(() => goalInput.focus(), 100);
+        });
+
+        btnCancelGoal.addEventListener('click', () => {
+            goalModal.classList.remove('active');
+        });
+
+        btnSaveGoal.addEventListener('click', () => {
+            const newGoal = parseInt(goalInput.value);
+            if (!isNaN(newGoal) && newGoal > 0) {
+                state.goal = newGoal;
+                saveState();
+                updateUI();
+            }
+            goalModal.classList.remove('active');
+        });
+
+        // Preset Modal
+        btnAddPreset.addEventListener('click', () => {
+            presetNameInput.value = '';
+            presetCalInput.value = '';
+            presetModal.classList.add('active');
+            setTimeout(() => presetNameInput.focus(), 100);
+        });
+
+        btnCancelPreset.addEventListener('click', () => {
+            presetModal.classList.remove('active');
+        });
+
+        btnSavePreset.addEventListener('click', () => {
+            const name = presetNameInput.value.trim();
+            const cal = parseInt(presetCalInput.value);
+            if (name && !isNaN(cal) && cal !== 0) {
+                presets.push({
+                    id: Date.now(),
+                    name: name,
+                    calories: cal
+                });
+                savePresets();
+            }
+            presetModal.classList.remove('active');
+        });
+
+        // Close modals on overlay click
+        [goalModal, presetModal].forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+        
+        caloriesCurrentEl.style.transition = 'transform 0.15s ease-out';
+    }
+});

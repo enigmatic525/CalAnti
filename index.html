@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Calorie Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0d0f12">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="date-nav">
+                <button class="nav-btn" id="btn-prev-day" aria-label="Previous day">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                </button>
+                <div class="date-titles">
+                    <h1 id="day-label">Today</h1>
+                    <p class="date" id="current-date">Monday, Oct 24</p>
+                </div>
+                <button class="nav-btn" id="btn-next-day" aria-label="Next day" disabled>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 18l6-6-6-6" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Chart Section -->
+        <section class="chart-section" id="chart-section" aria-label="Weekly Progress Chart">
+            <div class="chart-container">
+                <div class="chart-goal-line" id="chart-goal-line"></div>
+                <div class="chart-bars" id="chart-bars">
+                    <!-- Bars inserted by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Tracker Section -->
+        <section class="main-tracker-section">
+            <button class="btn btn-icon" id="btn-minus" aria-label="Subtract 50 calories">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            </button>
+
+            <div class="tracker-center">
+                <div class="calories-current" id="calories-current">0</div>
+                <div class="tracker-meta">
+                    <span class="calories-goal" id="calories-goal" role="button" tabindex="0"
+                        title="Click to edit goal">/ 2000</span>
+                    <div class="calories-left-pill">
+                        <span id="calories-left">2000</span> left
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-icon" id="btn-plus" aria-label="Add 50 calories">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            </button>
+        </section>
+
+        <!-- Presets Section -->
+        <section class="presets-section">
+            <div class="presets-header">
+                <h2>Presets</h2>
+                <button class="btn-text" id="btn-add-preset">+ Add New</button>
+            </div>
+            <div class="presets-grid" id="presets-grid">
+                <!-- Presets will be generated here -->
+            </div>
+        </section>
+    </div>
+
+    <!-- Modal for Edit Goal -->
+    <div class="modal-overlay" id="goal-modal">
+        <div class="modal-content">
+            <h3>Set Daily Goal</h3>
+            <input type="number" id="goal-input" class="modal-input" placeholder="e.g. 2000">
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="btn-cancel-goal">Cancel</button>
+                <button class="btn btn-primary" id="btn-save-goal">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Add Preset -->
+    <div class="modal-overlay" id="preset-modal">
+        <div class="modal-content">
+            <h3>Add New Preset</h3>
+            <input type="text" id="preset-name-input" class="modal-input" placeholder="Name (e.g. Apple)">
+            <input type="number" id="preset-cal-input" class="modal-input" placeholder="Calories (e.g. 95)">
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="btn-cancel-preset">Cancel</button>
+                <button class="btn btn-primary" id="btn-save-preset">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then(registration => {
+                    console.log('SW registered: ', registration.scope);
+                }).catch(err => {
+                    console.log('SW registration failed: ', err);
+                });
+            });
+        }
+    </script>
+    <script src="script.js"></script>
+</body>
+
+</html>
