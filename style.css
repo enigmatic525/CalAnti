@@ -116,7 +116,8 @@ body {
     position: absolute;
     width: 100%;
     border-top: 2px dashed rgba(255, 255, 255, 0.2);
-    top: 50%; /* Set by JS */
+    top: 50%;
+    /* Set by JS */
     left: 0;
     z-index: 1;
 }
@@ -178,6 +179,32 @@ body {
     font-weight: 600;
 }
 
+/* Daily Progress Bar */
+.progress-section {
+    width: 100%;
+    margin-bottom: 24px;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 12px;
+    background-color: var(--surface-color);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+}
+
+.progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent-secondary), var(--accent-primary));
+    border-radius: var(--radius-full);
+    transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+}
+
 /* Main Tracker */
 .main-tracker-section {
     display: flex;
@@ -206,6 +233,21 @@ body {
     background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 8px;
+    transition: var(--transition);
+}
+
+.editable-number {
+    cursor: pointer;
+}
+
+.editable-number:hover {
+    filter: brightness(1.2);
+}
+
+.tracker-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .tracker-meta {
@@ -262,6 +304,34 @@ body {
 }
 
 .btn-icon:active {
+    transform: translateY(0);
+}
+
+.btn-icon-text {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 14px;
+    font-family: var(--font-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-icon-text:hover {
+    background: var(--surface-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.btn-icon-text:active {
     transform: translateY(0);
 }
 

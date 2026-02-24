@@ -45,16 +45,23 @@
             </div>
         </section>
 
+        <!-- Daily Progress Bar -->
+        <section class="progress-section">
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progress-bar-fill"></div>
+            </div>
+        </section>
+
         <!-- Main Tracker Section -->
         <section class="main-tracker-section">
-            <button class="btn btn-icon" id="btn-minus" aria-label="Subtract 50 calories">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-            </button>
+            <div class="tracker-controls">
+                <button class="btn btn-icon-text" id="btn-minus-500" aria-label="Subtract 500 calories">-500</button>
+                <button class="btn btn-icon-text" id="btn-minus-50" aria-label="Subtract 50 calories">-50</button>
+            </div>
 
             <div class="tracker-center">
-                <div class="calories-current" id="calories-current">0</div>
+                <div class="calories-current editable-number" id="calories-current" role="button" tabindex="0"
+                    title="Click to edit total">0</div>
                 <div class="tracker-meta">
                     <span class="calories-goal" id="calories-goal" role="button" tabindex="0"
                         title="Click to edit goal">/ 2000</span>
@@ -64,12 +71,10 @@
                 </div>
             </div>
 
-            <button class="btn btn-icon" id="btn-plus" aria-label="Add 50 calories">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-            </button>
+            <div class="tracker-controls">
+                <button class="btn btn-icon-text" id="btn-plus-50" aria-label="Add 50 calories">+50</button>
+                <button class="btn btn-icon-text" id="btn-plus-500" aria-label="Add 500 calories">+500</button>
+            </div>
         </section>
 
         <!-- Presets Section -->
@@ -82,6 +87,18 @@
                 <!-- Presets will be generated here -->
             </div>
         </section>
+    </div>
+
+    <!-- Modal for Edit Calories -->
+    <div class="modal-overlay" id="calories-modal">
+        <div class="modal-content">
+            <h3>Set Current Calories</h3>
+            <input type="number" id="calories-input" class="modal-input" placeholder="e.g. 1500">
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="btn-cancel-calories">Cancel</button>
+                <button class="btn btn-primary" id="btn-save-calories">Save</button>
+            </div>
+        </div>
     </div>
 
     <!-- Modal for Edit Goal -->

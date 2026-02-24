@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // State
     const defaultGoal = 2000;
-    const addAmount = 50;
 
     let state = {
         goal: defaultGoal,
@@ -24,23 +23,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const caloriesCurrentEl = document.getElementById('calories-current');
     const caloriesGoalEl = document.getElementById('calories-goal');
     const caloriesLeftEl = document.getElementById('calories-left');
-    
+
     const btnPrevDay = document.getElementById('btn-prev-day');
     const btnNextDay = document.getElementById('btn-next-day');
-    
-    const btnMinus = document.getElementById('btn-minus');
-    const btnPlus = document.getElementById('btn-plus');
+
+    const btnMinus500 = document.getElementById('btn-minus-500');
+    const btnMinus50 = document.getElementById('btn-minus-50');
+    const btnPlus50 = document.getElementById('btn-plus-50');
+    const btnPlus500 = document.getElementById('btn-plus-500');
+    const progressBarFill = document.getElementById('progress-bar-fill');
     const presetsGrid = document.getElementById('presets-grid');
-    
+
     const chartBarsEl = document.getElementById('chart-bars');
     const chartGoalLineEl = document.getElementById('chart-goal-line');
 
     // Modals
+    const caloriesModal = document.getElementById('calories-modal');
+    const caloriesInput = document.getElementById('calories-input');
+    const btnCancelCalories = document.getElementById('btn-cancel-calories');
+    const btnSaveCalories = document.getElementById('btn-save-calories');
+
     const goalModal = document.getElementById('goal-modal');
     const goalInput = document.getElementById('goal-input');
     const btnCancelGoal = document.getElementById('btn-cancel-goal');
     const btnSaveGoal = document.getElementById('btn-save-goal');
-    
+
     const presetModal = document.getElementById('preset-modal');
     const presetNameInput = document.getElementById('preset-name-input');
     const presetCalInput = document.getElementById('preset-cal-input');
@@ -109,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateDateElements() {
-        const d = new Date(viewingDateString + 'T12:00:00'); 
+        const d = new Date(viewingDateString + 'T12:00:00');
         const options = { weekday: 'long', month: 'short', day: 'numeric' };
         dateEl.textContent = d.toLocaleDateString('en-US', options);
 
@@ -120,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentD = new Date(currentDateString + 'T12:00:00');
             const diffTime = currentD.getTime() - d.getTime();
             const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
-            
+
             if (diffDays === 1) {
                 dayLabelEl.textContent = 'Yesterday';
             } else {
@@ -134,54 +141,69 @@ document.addEventListener('DOMContentLoaded', () => {
         let cals = state.history[viewingDateString] || 0;
         caloriesCurrentEl.textContent = cals;
         caloriesGoalEl.textContent = `/ ${state.goal}`;
-        
+
         let left = state.goal - cals;
         if (left < 0) left = 0;
         caloriesLeftEl.textContent = left;
+
+        // Daily Progress Bar
+        let percentage = (cals / state.goal) * 100;
+        if (percentage > 100) percentage = 100;
+        if (progressBarFill) {
+            progressBarFill.style.width = `${percentage}%`;
+
+            if (cals > state.goal) {
+                progressBarFill.style.background = 'linear-gradient(90deg, #ef4444, #f87171)';
+                progressBarFill.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.5)';
+            } else {
+                progressBarFill.style.background = 'linear-gradient(90deg, var(--accent-secondary), var(--accent-primary))';
+                progressBarFill.style.boxShadow = '0 0 10px rgba(139, 92, 246, 0.5)';
+            }
+        }
 
         renderChart();
     }
 
     function renderChart() {
         chartBarsEl.innerHTML = '';
-        
+
         const daysToShow = 7;
         const historyData = [];
-        
+
         // Show 7 days ending on the viewing date
         let viewD = new Date(viewingDateString + 'T12:00:00');
-        let maxCals = state.goal; 
-        
+        let maxCals = state.goal;
+
         for (let i = daysToShow - 1; i >= 0; i--) {
             let tempD = new Date(viewD.getTime() - i * 24 * 60 * 60 * 1000);
             let dStr = getDateString(tempD);
             let c = state.history[dStr] || 0;
             if (c > maxCals) maxCals = c;
-            
+
             historyData.push({
                 dateStr: dStr,
                 cals: c,
                 label: tempD.toLocaleDateString('en-US', { weekday: 'narrow' })
             });
         }
-        
+
         // Give 20% headroom
         const chartMax = maxCals * 1.2;
-        
+
         // Goal line percentage
         const goalPercent = Math.min((state.goal / chartMax) * 100, 100);
         chartGoalLineEl.style.bottom = `${goalPercent}%`;
-        chartGoalLineEl.style.top = 'auto'; 
+        chartGoalLineEl.style.top = 'auto';
 
         historyData.forEach(item => {
             const isViewingDay = item.dateStr === viewingDateString;
             const isOver = item.cals > state.goal;
             const heightPercent = Math.min((item.cals / chartMax) * 100, 100);
-            
+
             const col = document.createElement('div');
             col.className = `chart-col ${isViewingDay ? 'active' : ''}`;
             col.style.cursor = 'pointer';
-            
+
             // Allow clicking a bar to view that day
             col.addEventListener('click', () => {
                 viewingDateString = item.dateStr;
@@ -197,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isViewingDay) barClasses += ' active';
             else if (isOver) barClasses += ' over';
             bar.className = barClasses;
-            bar.style.height = `${Math.max(heightPercent, 2)}%`; 
+            bar.style.height = `${Math.max(heightPercent, 2)}%`;
 
             const label = document.createElement('span');
             label.className = 'chart-label';
@@ -214,14 +236,14 @@ document.addEventListener('DOMContentLoaded', () => {
         let current = state.history[viewingDateString] || 0;
         current += amount;
         if (current < 0) current = 0;
-        
+
         state.history[viewingDateString] = current;
-        
+
         caloriesCurrentEl.style.transform = 'scale(1.1)';
         setTimeout(() => {
             caloriesCurrentEl.style.transform = 'scale(1)';
         }, 150);
-        
+
         saveState();
         updateUI();
     }
@@ -240,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </button>
             `;
-            
+
             el.addEventListener('click', (e) => {
                 if (e.target.closest('.preset-delete')) return;
                 adjustCalories(preset.calories);
@@ -263,12 +285,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const d = new Date(viewingDateString + 'T12:00:00');
             d.setDate(d.getDate() - 1);
             viewingDateString = getDateString(d);
-            
+
             // Ensure day exists in history
             if (typeof state.history[viewingDateString] !== 'number') {
                 state.history[viewingDateString] = 0;
             }
-            
+
             updateDateElements();
             updateUI();
         });
@@ -278,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const d = new Date(viewingDateString + 'T12:00:00');
             d.setDate(d.getDate() + 1);
             viewingDateString = getDateString(d);
-            
+
             // Ensure day exists in history
             if (typeof state.history[viewingDateString] !== 'number') {
                 state.history[viewingDateString] = 0;
@@ -289,8 +311,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Quick Actions
-        btnMinus.addEventListener('click', () => adjustCalories(-addAmount));
-        btnPlus.addEventListener('click', () => adjustCalories(addAmount));
+        btnMinus500.addEventListener('click', () => adjustCalories(-500));
+        btnMinus50.addEventListener('click', () => adjustCalories(-50));
+        btnPlus50.addEventListener('click', () => adjustCalories(50));
+        btnPlus500.addEventListener('click', () => adjustCalories(500));
+
+        // Calories Modal
+        caloriesCurrentEl.addEventListener('click', () => {
+            caloriesInput.value = state.history[viewingDateString] || 0;
+            caloriesModal.classList.add('active');
+            setTimeout(() => caloriesInput.focus(), 100);
+        });
+
+        btnCancelCalories.addEventListener('click', () => {
+            caloriesModal.classList.remove('active');
+        });
+
+        btnSaveCalories.addEventListener('click', () => {
+            const newCals = parseInt(caloriesInput.value);
+            if (!isNaN(newCals) && newCals >= 0) {
+                state.history[viewingDateString] = newCals;
+                saveState();
+                updateUI();
+            }
+            caloriesModal.classList.remove('active');
+        });
 
         // Goal Modal
         caloriesGoalEl.addEventListener('click', () => {
@@ -340,14 +385,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Close modals on overlay click
-        [goalModal, presetModal].forEach(modal => {
+        [caloriesModal, goalModal, presetModal].forEach(modal => {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.classList.remove('active');
                 }
             });
         });
-        
+
         caloriesCurrentEl.style.transition = 'transform 0.15s ease-out';
     }
 });
