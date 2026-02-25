@@ -605,13 +605,70 @@ body {
 }
 
 /* Responsive adjustments */
-@media (max-width: 380px) {
-    .btn-icon {
-        width: 56px;
-        height: 56px;
+@media (max-width: 480px) {
+    .app-container {
+        padding: 24px 16px;
+        gap: 24px;
+    }
+
+    .main-tracker-section {
+        padding: 24px 8px;
+    }
+
+    .btn-icon-text {
+        width: 42px;
+        height: 42px;
+        font-size: 13px;
+    }
+
+    .outer-btn {
+        margin: 0 2px;
+    }
+
+    .inner-btn {
+        margin: 0 6px;
     }
 
     .calories-current {
-        font-size: 40px;
+        font-size: 52px;
+    }
+}
+
+@media (max-width: 380px) {
+    .app-container {
+        padding: 16px 8px;
+        gap: 20px;
+    }
+
+    .main-tracker-section {
+        padding: 20px 4px;
+    }
+
+    .btn-icon-text {
+        width: 38px;
+        height: 40px;
+        font-size: 12px;
+        padding: 0;
+    }
+
+    .outer-btn {
+        margin: 0 1px;
+    }
+
+    .inner-btn {
+        margin: 0 3px;
+    }
+
+    .calories-current {
+        font-size: 42px;
+    }
+
+    .btn-icon {
+        width: 48px;
+        height: 48px;
+    }
+
+    .date-titles h1 {
+        font-size: 24px;
     }
 }
