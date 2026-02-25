@@ -139,6 +139,15 @@
                     console.log('SW registration failed: ', err);
                 });
             });
+
+            // Auto-reload the page when a new service worker takes over (fixes PWA cache locks)
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                }
+            });
         }
     </script>
     <script src="script.js"></script>
