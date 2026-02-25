@@ -40,7 +40,7 @@
             <div class="chart-container">
                 <div class="chart-plot-area">
                     <div class="chart-goal-line" id="chart-goal-line">
-                        <span class="chart-goal-label" id="chart-goal-label">Goal = 2000</span>
+                        <span class="chart-goal-label" id="chart-goal-label">Goal : 2000</span>
                     </div>
                     <div class="chart-bars" id="chart-bars">
                         <!-- Bars inserted by JS -->
@@ -72,8 +72,7 @@
                     <span class="calories-goal" id="calories-goal" role="button" tabindex="0"
                         title="Click to edit goal">/ 2000</span>
                     <div class="calories-status">
-                        <span id="calories-left">2000 deficit</span>
-                        <button class="btn-info" id="btn-info" aria-label="Info" title="Information">i</button>
+                        <span id="calories-left">2000 left</span>
                     </div>
                 </div>
             </div>
@@ -114,18 +113,6 @@
             <div class="modal-actions">
                 <button class="btn btn-secondary" id="btn-cancel-goal">Cancel</button>
                 <button class="btn btn-primary" id="btn-save-goal">Save</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal for Info -->
-    <div class="modal-overlay" id="info-modal">
-        <div class="modal-content">
-            <h3>Weekly Projection</h3>
-            <p id="info-text" style="color: var(--text-secondary); line-height: 1.5; font-size: 15px;">At this rate, you
-                will maintain your weight.</p>
-            <div class="modal-actions">
-                <button class="btn btn-primary" id="btn-close-info">Got it</button>
             </div>
         </div>
     </div>

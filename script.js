@@ -39,11 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const chartLabelsRowEl = document.getElementById('chart-labels-row');
     const chartGoalLabelEl = document.getElementById('chart-goal-label');
 
-    const btnInfo = document.getElementById('btn-info');
-    const infoModal = document.getElementById('info-modal');
-    const infoText = document.getElementById('info-text');
-    const btnCloseInfo = document.getElementById('btn-close-info');
-
     // Modals
     const caloriesModal = document.getElementById('calories-modal');
     const caloriesInput = document.getElementById('calories-input');
@@ -151,20 +146,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let diff = state.goal - cals;
         if (diff >= 0) {
-            caloriesLeftEl.textContent = `${diff} deficit`;
+            caloriesLeftEl.textContent = `${diff} left`;
         } else {
-            caloriesLeftEl.textContent = `${Math.abs(diff)} surplus`;
-        }
-
-        // Update Info Text
-        let weeklyDiffRaw = Math.abs(diff) * 7;
-        let lbsPerWeek = (weeklyDiffRaw / 3500).toFixed(1);
-        if (diff > 0) {
-            infoText.textContent = `At this rate, you will lose ${lbsPerWeek} lbs per week.`;
-        } else if (diff < 0) {
-            infoText.textContent = `At this rate, you will gain ${lbsPerWeek} lbs per week.`;
-        } else {
-            infoText.textContent = `At this rate, you will maintain your weight.`;
+            caloriesLeftEl.textContent = `${Math.abs(diff)} over`;
         }
 
         // Daily Progress Bar
@@ -188,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderChart() {
         chartBarsEl.innerHTML = '';
         if (chartLabelsRowEl) chartLabelsRowEl.innerHTML = '';
-        if (chartGoalLabelEl) chartGoalLabelEl.textContent = `Goal = ${state.goal}`;
+        if (chartGoalLabelEl) chartGoalLabelEl.textContent = `Goal : ${state.goal}`;
 
         const daysToShow = 7;
         const historyData = [];
@@ -405,17 +389,8 @@ document.addEventListener('DOMContentLoaded', () => {
             presetModal.classList.remove('active');
         });
 
-        // Info Modal
-        btnInfo.addEventListener('click', () => {
-            infoModal.classList.add('active');
-        });
-
-        btnCloseInfo.addEventListener('click', () => {
-            infoModal.classList.remove('active');
-        });
-
         // Close modals on overlay click
-        [caloriesModal, goalModal, presetModal, infoModal].forEach(modal => {
+        [caloriesModal, goalModal, presetModal].forEach(modal => {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.classList.remove('active');
