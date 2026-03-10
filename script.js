@@ -23,8 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateEl = document.getElementById('current-date');
     const dayLabelEl = document.getElementById('day-label');
     const caloriesCurrentEl = document.getElementById('calories-current');
-    const caloriesGoalEl = document.getElementById('calories-goal');
     const caloriesLeftEl = document.getElementById('calories-left');
+    const metricGoalEl = document.getElementById('metric-goal');
+    const metricMaintEl = document.getElementById('metric-maint');
+    const metricGoalValEl = document.getElementById('metric-goal-val');
+    const metricMaintValEl = document.getElementById('metric-maint-val');
 
     const btnPrevDay = document.getElementById('btn-prev-day');
     const btnNextDay = document.getElementById('btn-next-day');
@@ -53,6 +56,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const goalInput = document.getElementById('goal-input');
     const btnCancelGoal = document.getElementById('btn-cancel-goal');
     const btnSaveGoal = document.getElementById('btn-save-goal');
+
+    const maintModal = document.getElementById('maint-modal');
+    const maintInput = document.getElementById('maint-input');
+    const btnCancelMaint = document.getElementById('btn-cancel-maint');
+    const btnSaveMaint = document.getElementById('btn-save-maint');
 
     const presetModal = document.getElementById('preset-modal');
     const presetNameInput = document.getElementById('preset-name-input');
@@ -147,13 +155,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateUI() {
         let cals = state.history[viewingDateString] || 0;
         caloriesCurrentEl.textContent = cals;
-        caloriesGoalEl.textContent = `/ ${state.goal}`;
+        if (metricGoalValEl) metricGoalValEl.textContent = state.goal;
+        if (metricMaintValEl) metricMaintValEl.textContent = state.maintenance;
 
         let diff = state.goal - cals;
         if (diff >= 0) {
-            caloriesLeftEl.textContent = `${diff} left`;
+            if (caloriesLeftEl) caloriesLeftEl.textContent = `${diff} remaining`;
         } else {
-            caloriesLeftEl.textContent = `${Math.abs(diff)} over`;
+            if (caloriesLeftEl) caloriesLeftEl.textContent = `${Math.abs(diff)} over`;
         }
 
         // Daily Progress Bar
@@ -163,11 +172,11 @@ document.addEventListener('DOMContentLoaded', () => {
             progressBarFill.style.width = `${percentage}%`;
 
             if (cals > state.goal) {
-                progressBarFill.style.background = 'linear-gradient(90deg, #ef4444, #f87171)';
-                progressBarFill.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.5)';
+                progressBarFill.style.background = 'var(--danger)';
+                progressBarFill.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.3)';
             } else {
-                progressBarFill.style.background = 'linear-gradient(90deg, var(--accent-secondary), var(--accent-primary))';
-                progressBarFill.style.boxShadow = '0 0 10px rgba(139, 92, 246, 0.5)';
+                progressBarFill.style.background = 'var(--accent-primary)';
+                progressBarFill.style.boxShadow = '0 0 10px rgba(139, 92, 246, 0.3)';
             }
         }
 
@@ -231,13 +240,16 @@ document.addEventListener('DOMContentLoaded', () => {
             bar.className = barClasses;
             bar.style.height = `${Math.max(heightPercent, 2)}%`;
 
-            // +/- inside bar
+            // +/- inside bar text has been removed
             const diffFromMaint = item.cals - state.maintenance;
             const sign = diffFromMaint > 0 ? '+' : '';
             const diffText = diffFromMaint === 0 ? '0' : `${sign}${diffFromMaint}`;
 
-            bar.innerHTML = `<div class="bar-diff-text">${diffText}</div>`;
+            const diffEl = document.createElement('div');
+            diffEl.className = 'bar-diff-text';
+            diffEl.textContent = diffText;
 
+            barWrapper.appendChild(diffEl);
             barWrapper.appendChild(bar);
             col.appendChild(barWrapper);
             chartBarsEl.appendChild(col);
@@ -361,11 +373,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Goal Modal
-        caloriesGoalEl.addEventListener('click', () => {
-            goalInput.value = state.goal;
-            goalModal.classList.add('active');
-            setTimeout(() => goalInput.focus(), 100);
-        });
+        if (metricGoalEl) {
+            metricGoalEl.addEventListener('click', () => {
+                goalInput.value = state.goal;
+                goalModal.classList.add('active');
+                setTimeout(() => goalInput.focus(), 100);
+            });
+        }
 
         btnCancelGoal.addEventListener('click', () => {
             goalModal.classList.remove('active');
@@ -379,6 +393,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateUI();
             }
             goalModal.classList.remove('active');
+        });
+
+        // Maintenance Modal
+        if (metricMaintEl) {
+            metricMaintEl.addEventListener('click', () => {
+                maintInput.value = state.maintenance;
+                maintModal.classList.add('active');
+                setTimeout(() => maintInput.focus(), 100);
+            });
+        }
+
+        btnCancelMaint.addEventListener('click', () => {
+            maintModal.classList.remove('active');
+        });
+
+        btnSaveMaint.addEventListener('click', () => {
+            const newMaint = parseInt(maintInput.value);
+            if (!isNaN(newMaint) && newMaint > 0) {
+                state.maintenance = newMaint;
+                saveState();
+                updateUI();
+            }
+            maintModal.classList.remove('active');
         });
 
         // Preset Modal
@@ -408,12 +445,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Close modals on overlay click
-        [caloriesModal, goalModal, presetModal].forEach(modal => {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    modal.classList.remove('active');
-                }
-            });
+        [caloriesModal, goalModal, maintModal, presetModal].forEach(modal => {
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.classList.remove('active');
+                    }
+                });
+            }
         });
 
         caloriesCurrentEl.style.transition = 'transform 0.15s ease-out';

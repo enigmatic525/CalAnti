@@ -9,7 +9,8 @@
     <meta name="theme-color" content="#0d0f12">
     <link rel="icon" type="image/svg+xml" href="icon.svg">
     <link rel="apple-touch-icon" href="icon.svg">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -58,8 +59,45 @@
 
         <!-- Daily Progress Bar -->
         <section class="progress-section">
+            <div class="progress-header" style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
+                <span id="calories-left"
+                    style="font-size: 13px; color: var(--text-secondary); font-weight: var(--font-weight-regular);">2000
+                    remaining</span>
+            </div>
             <div class="progress-bar-container">
                 <div class="progress-bar-fill" id="progress-bar-fill"></div>
+            </div>
+        </section>
+
+        <!-- Metrics Row -->
+        <section class="metrics-row" style="display: flex; justify-content: space-evenly; margin: 16px 0;">
+            <div class="metric-item" id="metric-goal" role="button" tabindex="0" title="Edit Goal"
+                style="text-align: center; cursor: pointer;">
+                <div
+                    style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; font-weight: var(--font-weight-regular);">
+                    Goal</div>
+                <div
+                    style="font-size: 18px; font-weight: var(--font-weight-medium); color: var(--text-primary); position: relative; display: inline-block;">
+                    <span id="metric-goal-val">2000</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="position: absolute; top: 0px; right: -16px; color: var(--text-secondary);">
+                        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="metric-item" id="metric-maint" role="button" tabindex="0" title="Edit Maintenance"
+                style="text-align: center; cursor: pointer;">
+                <div
+                    style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; font-weight: var(--font-weight-regular);">
+                    Maintenance</div>
+                <div
+                    style="font-size: 18px; font-weight: var(--font-weight-medium); color: var(--text-primary); position: relative; display: inline-block;">
+                    <span id="metric-maint-val">2500</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="position: absolute; top: 0px; right: -16px; color: var(--text-secondary);">
+                        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                    </svg>
+                </div>
             </div>
         </section>
 
@@ -72,13 +110,6 @@
             <div class="tracker-center">
                 <div class="calories-current editable-number" id="calories-current" role="button" tabindex="0"
                     title="Click to edit total">0</div>
-                <div class="tracker-meta">
-                    <span class="calories-goal" id="calories-goal" role="button" tabindex="0"
-                        title="Click to edit goal">/ 2000</span>
-                    <div class="calories-status">
-                        <span id="calories-left">2000 left</span>
-                    </div>
-                </div>
             </div>
 
             <button class="btn btn-icon-text inner-btn" id="btn-plus-50" aria-label="Add 50 calories">+50</button>
@@ -117,6 +148,18 @@
             <div class="modal-actions">
                 <button class="btn btn-secondary" id="btn-cancel-goal">Cancel</button>
                 <button class="btn btn-primary" id="btn-save-goal">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Edit Maintenance -->
+    <div class="modal-overlay" id="maint-modal">
+        <div class="modal-content">
+            <h3>Set Maintenance</h3>
+            <input type="number" id="maint-input" class="modal-input" placeholder="e.g. 2500">
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="btn-cancel-maint">Cancel</button>
+                <button class="btn btn-primary" id="btn-save-maint">Save</button>
             </div>
         </div>
     </div>
