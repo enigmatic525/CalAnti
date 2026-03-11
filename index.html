@@ -7,7 +7,7 @@
     <title>My Tracker</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0d0f12">
-    <link rel="icon" type="image/svg+xml" href="myicon.png">
+    <link rel="icon" type="image/png" href="myicon.png">
     <link rel="apple-touch-icon" href="myicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&display=swap"
         rel="stylesheet">
@@ -36,103 +36,255 @@
             </div>
         </header>
 
-        <!-- Chart Section -->
-        <section class="chart-section" id="chart-section" aria-label="Weekly Progress Chart">
-            <div id="weekly-difference-label"
-                style="position: absolute; top: 12px; left: 16px; font-size: 13px; color: var(--text-secondary); font-weight: var(--font-weight-medium); z-index: 5;">
-                This week: 0</div>
-            <div class="chart-container">
-                <div class="chart-plot-area">
-                    <div class="chart-goal-line" id="chart-maintenance-line"></div>
-                    <div class="chart-goal-line" id="chart-goal-line"></div>
-                    <div class="chart-bars" id="chart-bars">
-                        <!-- Bars inserted by JS -->
+        <div class="tabs-container" id="tabs-container">
+            <!-- CALORIES TAB -->
+            <div id="tab-calories" class="tab-pane active">
+                <!-- Chart Section -->
+                <section class="chart-section" id="chart-section" aria-label="Weekly Progress Chart">
+                    <div id="weekly-difference-label"
+                        style="position: absolute; top: 12px; left: 16px; font-size: 13px; color: var(--text-secondary); font-weight: var(--font-weight-medium); z-index: 5;">
+                        This week: 0</div>
+                    <div class="chart-container">
+                        <div class="chart-plot-area">
+                            <div class="chart-goal-line" id="chart-maintenance-line"></div>
+                            <div class="chart-goal-line" id="chart-goal-line"></div>
+                            <div class="chart-bars" id="chart-bars">
+                                <!-- Bars inserted by JS -->
+                            </div>
+                        </div>
+                        <div class="chart-labels-row" id="chart-labels-row">
+                            <!-- Labels inserted by JS -->
+                        </div>
                     </div>
+                </section>
+
+                <div style="display: flex; flex-direction: column; position: relative;">
+                    <!-- Daily Progress Bar -->
+                    <section class="progress-section" style="margin-bottom: 32px;">
+                        <div class="progress-header" style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
+                            <span id="calories-left"
+                                style="font-size: 13px; color: var(--text-secondary); font-weight: var(--font-weight-regular);">2000
+                                remaining</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" id="progress-bar-fill"></div>
+                        </div>
+                    </section>
+
+                    <!-- Metrics Row -->
+                    <section class="metrics-row"
+                        style="display: flex; justify-content: space-evenly; position: relative; margin-bottom: 24px; top: 4px;">
+                        <div class="metric-item" id="metric-maint" role="button" tabindex="0" title="Edit Maintenance"
+                            style="text-align: center; cursor: pointer;">
+                            <div
+                                style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; font-weight: var(--font-weight-regular);">
+                                Maintenance</div>
+                            <div
+                                style="font-size: 18px; font-weight: var(--font-weight-medium); color: var(--text-primary); position: relative; display: inline-block; line-height: 1;">
+                                <span id="metric-maint-val">2500</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2"
+                                    style="position: absolute; top: 0px; right: -16px; color: var(--text-secondary);">
+                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="metric-item" id="metric-goal" role="button" tabindex="0" title="Edit Goal"
+                            style="text-align: center; cursor: pointer;">
+                            <div
+                                style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; font-weight: var(--font-weight-regular);">
+                                Goal</div>
+                            <div
+                                style="font-size: 18px; font-weight: var(--font-weight-medium); color: var(--text-primary); position: relative; display: inline-block; line-height: 1;">
+                                <span id="metric-goal-val">2000</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2"
+                                    style="position: absolute; top: 0px; right: -16px; color: var(--text-secondary);">
+                                    <path d="M17 3a2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Main Tracker Section -->
+                    <section class="main-tracker-section">
+                        <button class="btn btn-icon-text outer-btn" id="btn-minus-100"
+                            aria-label="Subtract 100 calories">-100</button>
+                        <button class="btn btn-icon-text inner-btn" id="btn-minus-50"
+                            aria-label="Subtract 50 calories">-50</button>
+
+                        <div class="tracker-center">
+                            <div class="calories-current editable-number" id="calories-current" role="button" tabindex="0"
+                                title="Click to edit total">0</div>
+                        </div>
+
+                        <button class="btn btn-icon-text inner-btn" id="btn-plus-50" aria-label="Add 50 calories">+50</button>
+                        <button class="btn btn-icon-text outer-btn" id="btn-plus-100"
+                            aria-label="Add 100 calories">+100</button>
+                    </section>
                 </div>
-                <div class="chart-labels-row" id="chart-labels-row">
-                    <!-- Labels inserted by JS -->
+
+                <!-- Presets Section -->
+                <section class="presets-section">
+                    <div class="presets-header">
+                        <h2>Presets</h2>
+                        <button class="btn-text" id="btn-add-preset">+ Add New</button>
+                    </div>
+                    <div class="presets-grid" id="presets-grid">
+                        <!-- Presets will be generated here -->
+                    </div>
+                </section>
+            </div>
+
+            <!-- WEIGHT TAB -->
+            <div id="tab-weight" class="tab-pane">
+                <section class="chart-section" id="weight-chart-section" aria-label="Weight Progress Chart">
+                    <div style="position: absolute; top: 12px; left: 16px; right: 16px; display: flex; justify-content: space-between; z-index: 5;">
+                        <span style="font-size: 13px; color: var(--text-secondary); font-weight: var(--font-weight-medium);">Weight Trend</span>
+                        <div class="chart-toggles" id="weight-chart-toggles">
+                            <button class="chart-toggle" data-range="week">W</button>
+                            <button class="chart-toggle active" data-range="month">M</button>
+                            <button class="chart-toggle" data-range="year">Y</button>
+                        </div>
+                    </div>
+                    <div class="chart-container" style="margin-top: 24px;">
+                        <svg id="weight-chart-svg" width="100%" height="100%" viewBox="0 -10 100 120" preserveAspectRatio="none">
+                           <path id="weight-chart-line" d="" fill="none" stroke="var(--accent-primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </section>
+
+                <section class="main-tracker-section" style="flex-direction: column; gap: 16px; margin-top: 32px;">
+                    <div style="font-size: 13px; color: var(--text-secondary);">Log Weight</div>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 16px;">
+                        <button class="btn btn-icon-text inner-btn" id="btn-weight-minus">-1</button>
+                        <div class="tracker-center" style="position: relative;">
+                            <input type="number" id="weight-input" step="0.1" value="0.0" style="font-size: 48px; font-weight: var(--font-weight-medium); line-height: 1; background: transparent; color: var(--text-primary); border: none; text-align: center; width: 140px; outline: none; appearance: textfield; -moz-appearance: textfield;">
+                            <span style="font-size: 14px; color: var(--text-secondary); position: absolute; bottom: 8px; right: -10px;">lbs</span>
+                        </div>
+                        <button class="btn btn-icon-text inner-btn" id="btn-weight-plus">+1</button>
+                    </div>
+                    <button class="btn btn-primary" id="btn-save-weight" style="width: 100%;">Save Entry</button>
+                </section>
+            </div>
+
+            <!-- LIFTS TAB -->
+            <div id="tab-lifts" class="tab-pane">
+                <div id="lifts-main-view">
+                    <div class="ppl-toggles" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 24px;">
+                        <button class="btn btn-secondary active ppl-toggle" data-ppl="push">Push</button>
+                        <button class="btn btn-secondary ppl-toggle" data-ppl="pull">Pull</button>
+                        <button class="btn btn-secondary ppl-toggle" data-ppl="legs">Legs</button>
+                    </div>
+
+                    <div id="lifts-list" style="display: flex; flex-direction: column; gap: 12px;">
+                        <!-- Exercises populated by JS -->
+                    </div>
+                    <button class="btn-text" id="btn-add-lift" style="align-self: flex-start; margin-top: 16px;">+ Add Exercise</button>
+                </div>
+
+                <div id="lift-detail-view" style="display: none; flex-direction: column; gap: 24px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center;">
+                            <button class="btn-secondary" id="btn-back-lifts" style="padding: 8px; display: flex; align-items: center; justify-content: center;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19L5 12L12 5"/></svg>
+                            </button>
+                            <h2 id="lift-detail-title" style="margin-left: 12px; font-size: 20px; font-weight: var(--font-weight-medium);">Exercise</h2>
+                        </div>
+                        <button class="btn-text" id="btn-delete-lift" style="color: var(--danger);">Delete</button>
+                    </div>
+                    
+                    <section class="chart-section" aria-label="Lift Progress Chart">
+                        <div style="position: absolute; top: 12px; left: 16px; font-size: 13px; color: var(--text-secondary); font-weight: var(--font-weight-medium);">Estimated 1RM Trend</div>
+                        <div class="chart-container" style="margin-top: 24px;">
+                            <svg id="lift-chart-svg" width="100%" height="100%" viewBox="0 -10 100 120" preserveAspectRatio="none">
+                               <path id="lift-chart-line" d="" fill="none" stroke="var(--accent-primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                    </section>
+
+                    <section class="main-tracker-section" style="flex-direction: column; gap: 16px;">
+                        <div style="display: flex; gap: 16px; width: 100%;">
+                            <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                                <label style="font-size: 13px; color: var(--text-secondary);">Weight (lbs)</label>
+                                <input type="number" id="lift-weight-input" class="modal-input" placeholder="e.g. 135" style="text-align: center;">
+                            </div>
+                            <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                                <label style="font-size: 13px; color: var(--text-secondary);">Reps</label>
+                                <input type="number" id="lift-reps-input" class="modal-input" placeholder="e.g. 8" style="text-align: center;">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" id="btn-save-lift-set" style="width: 100%;">Save Set</button>
+                    </section>
+
+                    <div style="font-size: 15px; font-weight: var(--font-weight-medium); margin-bottom: 8px;">Today's Sets</div>
+                    <div id="lift-history-list" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Sets populated by JS -->
+                    </div>
                 </div>
             </div>
-        </section>
-
-        <div style="display: flex; flex-direction: column; position: relative;">
-            <!-- Daily Progress Bar -->
-            <section class="progress-section" style="margin-bottom: 32px;">
-                <div class="progress-header" style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
-                    <span id="calories-left"
-                        style="font-size: 13px; color: var(--text-secondary); font-weight: var(--font-weight-regular);">2000
-                        remaining</span>
-                </div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar-fill" id="progress-bar-fill"></div>
-                </div>
-            </section>
-
-            <!-- Metrics Row -->
-            <section class="metrics-row"
-                style="display: flex; justify-content: space-evenly; position: relative; margin-bottom: 24px; top: 4px;">
-                <div class="metric-item" id="metric-maint" role="button" tabindex="0" title="Edit Maintenance"
-                    style="text-align: center; cursor: pointer;">
-                    <div
-                        style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; font-weight: var(--font-weight-regular);">
-                        Maintenance</div>
-                    <div
-                        style="font-size: 18px; font-weight: var(--font-weight-medium); color: var(--text-primary); position: relative; display: inline-block; line-height: 1;">
-                        <span id="metric-maint-val">2500</span>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2"
-                            style="position: absolute; top: 0px; right: -16px; color: var(--text-secondary);">
-                            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                        </svg>
-                    </div>
-                </div>
-                <div class="metric-item" id="metric-goal" role="button" tabindex="0" title="Edit Goal"
-                    style="text-align: center; cursor: pointer;">
-                    <div
-                        style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; font-weight: var(--font-weight-regular);">
-                        Goal</div>
-                    <div
-                        style="font-size: 18px; font-weight: var(--font-weight-medium); color: var(--text-primary); position: relative; display: inline-block; line-height: 1;">
-                        <span id="metric-goal-val">2000</span>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2"
-                            style="position: absolute; top: 0px; right: -16px; color: var(--text-secondary);">
-                            <path d="M17 3a2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                        </svg>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Main Tracker Section -->
-            <section class="main-tracker-section">
-                <button class="btn btn-icon-text outer-btn" id="btn-minus-100"
-                    aria-label="Subtract 100 calories">-100</button>
-                <button class="btn btn-icon-text inner-btn" id="btn-minus-50"
-                    aria-label="Subtract 50 calories">-50</button>
-
-                <div class="tracker-center">
-                    <div class="calories-current editable-number" id="calories-current" role="button" tabindex="0"
-                        title="Click to edit total">0</div>
-                </div>
-
-                <button class="btn btn-icon-text inner-btn" id="btn-plus-50" aria-label="Add 50 calories">+50</button>
-                <button class="btn btn-icon-text outer-btn" id="btn-plus-100"
-                    aria-label="Add 100 calories">+100</button>
-            </section>
         </div>
-
-        <!-- Presets Section -->
-        <section class="presets-section">
-            <div class="presets-header">
-                <h2>Presets</h2>
-                <button class="btn-text" id="btn-add-preset">+ Add New</button>
-            </div>
-            <div class="presets-grid" id="presets-grid">
-                <!-- Presets will be generated here -->
-            </div>
-        </section>
     </div>
 
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <button class="nav-tab active" data-target="tab-calories">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            <span>Calories</span>
+        </button>
+        <button class="nav-tab" data-target="tab-weight">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 3v18h18"/>
+                <path d="m19 9-5 5-4-4-3 3"/>
+            </svg>
+            <span>Weight</span>
+        </button>
+        <button class="nav-tab" data-target="tab-lifts">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6.5 17.5 17.5 6.5"/>
+                <path d="m6.5 6.5 11 11"/>
+                <path d="m21 21-1-1M3 3l1 1"/>
+                <path d="m14.5 9.5-4 4"/>
+                <path d="m9.5 14.5-2 2-2-2 2-2"/>
+                <path d="m14.5 9.5 2-2 2 2-2 2"/>
+            </svg>
+            <span>Lifts</span>
+        </button>
+    </nav>
+
+    <!-- Modals -->
+    <!-- Modal for Add Lift -->
+    <div class="modal-overlay" id="lift-modal">
+        <div class="modal-content">
+            <h3>Add New Exercise</h3>
+            <input type="text" id="lift-name-input" class="modal-input" placeholder="Exercise Name">
+            <select id="lift-group-input" class="modal-input" style="margin-top: 8px;">
+                <option value="push">Push</option>
+                <option value="pull">Pull</option>
+                <option value="legs">Legs</option>
+            </select>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="btn-cancel-lift">Cancel</button>
+                <button class="btn btn-primary" id="btn-save-lift">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutorial Overlay -->
+    <div class="tutorial-overlay" id="tutorial-overlay">
+        <div class="tutorial-content">
+            <h2>Welcome to My Tracker</h2>
+            <p style="color: var(--text-secondary); font-size: 14px; margin-top: 8px;">A minimalistic tracker.</p>
+            <ul style="text-align: left; margin: 16px 0; padding-left: 20px; font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
+                <li><strong>Calories:</strong> Defaults each day to maintenance. Edit directly or quick add/sub.</li>
+                <li><strong>Weight:</strong> Check your trends over time.</li>
+                <li><strong>Lifts:</strong> Organize by PPL and track estimated 1RM.</li>
+            </ul>
+            <button class="btn btn-primary" id="btn-tutorial-close" style="width: 100%; margin-top: 12px;">Get Started</button>
+        </div>
+    </div>
     <!-- Modal for Edit Calories -->
     <div class="modal-overlay" id="calories-modal">
         <div class="modal-content">

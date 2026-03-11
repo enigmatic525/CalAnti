@@ -1,11 +1,11 @@
-const CACHE_NAME = 'calorie-tracker-v3';
+const CACHE_NAME = 'calorie-tracker-v4';
 const urlsToCache = [
     './',
     './index.html',
     './style.css',
     './script.js',
     './manifest.json',
-    './icon.svg'
+    './myicon.png'
 ];
 
 self.addEventListener('install', event => {

@@ -1,82 +1,46 @@
+// My Tracker App Logic
 document.addEventListener('DOMContentLoaded', () => {
-    // State
-    const defaultGoal = 2000;
-    const defaultMaintenance = 2500;
+    // ---- State & Migration ----
+    let oldState = JSON.parse(localStorage.getItem('calorieTrackerStateV2') || '{}');
+    let appState = JSON.parse(localStorage.getItem('myTrackerAppState') || 'null');
+    
+    if (!appState) {
+        appState = {
+            calories: {
+                goal: oldState.goal || 2000,
+                maintenance: oldState.maintenance || 2500,
+                history: oldState.history || {}
+            },
+            weight: { history: {} },
+            lifts: {
+                exercises: [
+                    { id: '1', name: 'Bench', group: 'push' },
+                    { id: '2', name: 'Incline Smith', group: 'push' },
+                    { id: '3', name: 'Cable Pushdown', group: 'push' },
+                    { id: '4', name: 'Lateral Raise', group: 'push' },
+                    { id: '5', name: 'Pull Ups', group: 'pull' },
+                    { id: '6', name: 'Low Row', group: 'pull' },
+                    { id: '7', name: 'Dumbbell Curl', group: 'pull' },
+                    { id: '8', name: 'Squat', group: 'legs' },
+                    { id: '9', name: 'Deadlift', group: 'legs' }
+                ],
+                history: {}
+            },
+            settings: { tutorialShown: false }
+        };
+        saveState();
+    }
 
-    let state = {
-        goal: defaultGoal,
-        maintenance: defaultMaintenance,
-        history: {} // format: { 'YYYY-MM-DD': calories }
-    };
-
-    let currentDateString = getTodayDateString();
-    let viewingDateString = currentDateString;
-
-    let presets = [
+    let presets = JSON.parse(localStorage.getItem('calorieTrackerPresets') || 'null') || [
         { id: 1, name: 'Apple', calories: 95 },
         { id: 2, name: 'Banana', calories: 105 },
         { id: 3, name: 'Coffee', calories: 5 },
         { id: 4, name: 'Protein Shake', calories: 150 }
     ];
 
-    // DOM Elements
-    const dateEl = document.getElementById('current-date');
-    const dayLabelEl = document.getElementById('day-label');
-    const caloriesCurrentEl = document.getElementById('calories-current');
-    const caloriesLeftEl = document.getElementById('calories-left');
-    const metricGoalEl = document.getElementById('metric-goal');
-    const metricMaintEl = document.getElementById('metric-maint');
-    const metricGoalValEl = document.getElementById('metric-goal-val');
-    const metricMaintValEl = document.getElementById('metric-maint-val');
-
-    const btnPrevDay = document.getElementById('btn-prev-day');
-    const btnNextDay = document.getElementById('btn-next-day');
-
-    const btnMinus100 = document.getElementById('btn-minus-100');
-    const btnMinus50 = document.getElementById('btn-minus-50');
-    const btnPlus50 = document.getElementById('btn-plus-50');
-    const btnPlus100 = document.getElementById('btn-plus-100');
-    const progressBarFill = document.getElementById('progress-bar-fill');
-    const presetsGrid = document.getElementById('presets-grid');
-
-    const chartBarsEl = document.getElementById('chart-bars');
-    const chartGoalLineEl = document.getElementById('chart-goal-line');
-    const chartMaintenanceLineEl = document.getElementById('chart-maintenance-line');
-    const chartLabelsRowEl = document.getElementById('chart-labels-row');
-    const weeklyDiffLabelEl = document.getElementById('weekly-difference-label');
-
-    // Modals
-    const caloriesModal = document.getElementById('calories-modal');
-    const caloriesInput = document.getElementById('calories-input');
-    const btnCancelCalories = document.getElementById('btn-cancel-calories');
-    const btnSaveCalories = document.getElementById('btn-save-calories');
-
-    const goalModal = document.getElementById('goal-modal');
-    const goalInput = document.getElementById('goal-input');
-    const btnCancelGoal = document.getElementById('btn-cancel-goal');
-    const btnSaveGoal = document.getElementById('btn-save-goal');
-
-    const maintModal = document.getElementById('maint-modal');
-    const maintInput = document.getElementById('maint-input');
-    const btnCancelMaint = document.getElementById('btn-cancel-maint');
-    const btnSaveMaint = document.getElementById('btn-save-maint');
-
-    const presetModal = document.getElementById('preset-modal');
-    const presetNameInput = document.getElementById('preset-name-input');
-    const presetCalInput = document.getElementById('preset-cal-input');
-    const btnAddPreset = document.getElementById('btn-add-preset');
-    const btnCancelPreset = document.getElementById('btn-cancel-preset');
-    const btnSavePreset = document.getElementById('btn-save-preset');
-
-    // Initialization
-    init();
-
-    function init() {
-        loadState();
-        loadPresets();
-        updateDateElements();
-        updateUI();
-        setupEventListeners();
+    function saveState() {
+        localStorage.setItem('myTrackerAppState', JSON.stringify(appState));
+        localStorage.setItem('calorieTrackerPresets', JSON.stringify(presets));
     }
 
     function getDateString(d) {
@@ -86,386 +50,459 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${year}-${month}-${day}`;
     }
 
-    function getTodayDateString() {
-        return getDateString(new Date());
+    let currentDateString = getDateString(new Date());
+    let viewingDateString = currentDateString;
+
+    // Default missing current dates to maintenance
+    if (appState.calories.history[currentDateString] === undefined) {
+        appState.calories.history[currentDateString] = appState.calories.maintenance;
+        saveState();
     }
 
-    function loadState() {
-        const saved = localStorage.getItem('calorieTrackerStateV2');
-        if (saved) {
-            state = JSON.parse(saved);
-            if (!state.maintenance) state.maintenance = defaultMaintenance;
-        } else {
-            // Migrate from v1
-            const oldSaved = localStorage.getItem('calorieTrackerState');
-            if (oldSaved) {
-                const old = JSON.parse(oldSaved);
-                state.goal = old.goal || defaultGoal;
-                if (old.lastUpdated && typeof old.calories === 'number') {
-                    state.history[old.lastUpdated] = old.calories;
-                }
-            }
-        }
-        // Ensure today is initialized
-        if (typeof state.history[currentDateString] !== 'number') {
-            state.history[currentDateString] = 0;
-        }
-    }
+    // ---- DOM Elements ----
+    const q = sel => document.querySelector(sel);
+    const qAll = sel => document.querySelectorAll(sel);
+    const getId = id => document.getElementById(id);
 
-    function saveState() {
-        localStorage.setItem('calorieTrackerStateV2', JSON.stringify(state));
-    }
-
-    function loadPresets() {
-        const savedPresets = localStorage.getItem('calorieTrackerPresets');
-        if (savedPresets) {
-            presets = JSON.parse(savedPresets);
-        }
-        renderPresets();
-    }
-
-    function savePresets() {
-        localStorage.setItem('calorieTrackerPresets', JSON.stringify(presets));
-        renderPresets();
-    }
-
-    function updateDateElements() {
+    const updateDateElements = () => {
         const d = new Date(viewingDateString + 'T12:00:00');
-        const options = { weekday: 'long', month: 'short', day: 'numeric' };
-        dateEl.textContent = d.toLocaleDateString('en-US', options);
+        getId('current-date').textContent = d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
         if (viewingDateString === currentDateString) {
-            dayLabelEl.textContent = 'Today';
-            btnNextDay.disabled = true;
+            getId('day-label').textContent = 'Today';
+            getId('btn-next-day').disabled = true;
         } else {
             const currentD = new Date(currentDateString + 'T12:00:00');
-            const diffTime = currentD.getTime() - d.getTime();
-            const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
-
-            if (diffDays === 1) {
-                dayLabelEl.textContent = 'Yesterday';
-            } else {
-                dayLabelEl.textContent = `${diffDays} days ago`;
-            }
-            btnNextDay.disabled = false;
+            const diffDays = Math.round((currentD - d) / (1000 * 3600 * 24));
+            getId('day-label').textContent = diffDays === 1 ? 'Yesterday' : `${diffDays} days ago`;
+            getId('btn-next-day').disabled = false;
         }
+    };
+
+    getId('btn-prev-day').addEventListener('click', () => {
+        const d = new Date(viewingDateString + 'T12:00:00');
+        d.setDate(d.getDate() - 1);
+        viewingDateString = getDateString(d);
+        if (appState.calories.history[viewingDateString] === undefined) {
+            appState.calories.history[viewingDateString] = appState.calories.maintenance;
+            saveState();
+        }
+        updateDateElements();
+        updateCaloriesUI();
+    });
+
+    getId('btn-next-day').addEventListener('click', () => {
+        if (getId('btn-next-day').disabled) return;
+        const d = new Date(viewingDateString + 'T12:00:00');
+        d.setDate(d.getDate() + 1);
+        viewingDateString = getDateString(d);
+        if (appState.calories.history[viewingDateString] === undefined) {
+            appState.calories.history[viewingDateString] = appState.calories.maintenance;
+            saveState();
+        }
+        updateDateElements();
+        updateCaloriesUI();
+    });
+
+    // ---- Tabs Logic ----
+    qAll('.nav-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const target = tab.getAttribute('data-target');
+            qAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            qAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            getId(target).classList.add('active');
+            if(target === 'tab-calories') updateCaloriesUI();
+            if(target === 'tab-weight') updateWeightUI();
+            if(target === 'tab-lifts') renderLiftsList();
+        });
+    });
+
+    // ---- SVG Mapping ----
+    function mapLinePath(dataPointsList, svgPathId) {
+        const pathEl = getId(svgPathId);
+        if (!dataPointsList || dataPointsList.length < 2) {
+            if(dataPointsList && dataPointsList.length === 1) pathEl.setAttribute('d', `M 0 50 L 100 50`);
+            else pathEl.setAttribute('d', '');
+            return;
+        }
+        const yVals = dataPointsList.map(d => d.y);
+        const minZ = Math.min(...yVals) * 0.98;
+        const maxZ = Math.max(...yVals) * 1.02;
+        const yDiff = maxZ - minZ || 1; 
+
+        const times = dataPointsList.map(d => d.time);
+        const minT = Math.min(...times);
+        const maxT = Math.max(...times);
+        const tDiff = maxT - minT || 1;
+
+        let getX = t => ((t - minT) / tDiff) * 100;
+        let getY = val => 100 - ((val - minZ) / yDiff * 100);
+
+        let path = `M ${getX(times[0])} ${getY(yVals[0])}`;
+        for(let i=1; i<dataPointsList.length; i++) {
+            path += ` L ${getX(times[i])} ${getY(yVals[i])}`;
+        }
+        pathEl.setAttribute('d', path);
     }
 
-    function updateUI() {
-        let cals = state.history[viewingDateString] || 0;
-        caloriesCurrentEl.textContent = cals;
-        if (metricGoalValEl) metricGoalValEl.textContent = state.goal;
-        if (metricMaintValEl) metricMaintValEl.textContent = state.maintenance;
-
-        let diff = state.goal - cals;
-        if (diff >= 0) {
-            if (caloriesLeftEl) caloriesLeftEl.textContent = `${diff} remaining`;
-        } else {
-            if (caloriesLeftEl) caloriesLeftEl.textContent = `${Math.abs(diff)} over`;
-        }
-
-        // Daily Progress Bar
-        let percentage = (cals / state.goal) * 100;
-        if (percentage > 100) percentage = 100;
-        if (progressBarFill) {
-            progressBarFill.style.width = `${percentage}%`;
-
-            if (cals > state.goal) {
-                progressBarFill.style.background = 'var(--danger)';
-                progressBarFill.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.3)';
-            } else {
-                progressBarFill.style.background = 'var(--accent-primary)';
-                progressBarFill.style.boxShadow = '0 0 10px rgba(139, 92, 246, 0.3)';
-            }
-        }
-
-        renderChart();
-    }
-
+    // ---- Calories Logic ----
     function renderChart() {
-        chartBarsEl.innerHTML = '';
-        if (chartLabelsRowEl) chartLabelsRowEl.innerHTML = '';
+        const barsEl = getId('chart-bars');
+        const labelsEl = getId('chart-labels-row');
+        barsEl.innerHTML = ''; labelsEl.innerHTML = '';
+        const goalLine = getId('chart-goal-line');
+        const maintLine = getId('chart-maintenance-line');
+        const diffLabel = getId('weekly-difference-label');
 
-        const daysToShow = 7;
-        const historyData = [];
+        let viewD = new Date(viewingDateString + 'T12:00:00');
+        let maxCals = Math.max(appState.calories.goal, appState.calories.maintenance);
+        let historyData = [];
         let weeklyDiff = 0;
 
-        // Show 7 days ending on the viewing date
-        let viewD = new Date(viewingDateString + 'T12:00:00');
-        let maxCals = Math.max(state.goal, state.maintenance);
-
-        for (let i = daysToShow - 1; i >= 0; i--) {
-            let tempD = new Date(viewD.getTime() - i * 24 * 60 * 60 * 1000);
+        for (let i = 6; i >= 0; i--) {
+            let tempD = new Date(viewD.getTime() - i * 86400000);
             let dStr = getDateString(tempD);
-            let c = state.history[dStr] || 0;
+            let c = appState.calories.history[dStr] !== undefined ? appState.calories.history[dStr] : appState.calories.maintenance;
             if (c > maxCals) maxCals = c;
-
-            if (c > 0) {
-                weeklyDiff += (c - state.maintenance);
-            }
-
-            historyData.push({
-                dateStr: dStr,
-                cals: c,
-                label: tempD.toLocaleDateString('en-US', { weekday: 'narrow' })
-            });
+            if (c > 0) weeklyDiff += (c - appState.calories.maintenance);
+            historyData.push({ dateStr: dStr, cals: c, label: tempD.toLocaleDateString('en-US', { weekday: 'narrow' }) });
         }
 
-        if (weeklyDiffLabelEl) {
-            const sign = weeklyDiff > 0 ? '+' : '';
-            weeklyDiffLabelEl.textContent = `This week: ${sign}${weeklyDiff}`;
-        }
-
-        // Give 20% headroom
+        let lbsDiff = (weeklyDiff / 3500).toFixed(2);
+        let lbsSign = weeklyDiff > 0 ? '+' : '';
+        diffLabel.textContent = `This Week: ${weeklyDiff > 0 ? '+' : ''}${weeklyDiff} Calories, ${lbsSign}${lbsDiff} lbs`;
         const chartMax = maxCals * 1.2;
-
-        // Goal line percentage
-        const goalPercent = Math.min((state.goal / chartMax) * 100, 100);
-        chartGoalLineEl.style.bottom = `${goalPercent}%`;
-        chartGoalLineEl.style.top = 'auto';
-
-        // Maintenance line percentage
-        const maintPercent = Math.min((state.maintenance / chartMax) * 100, 100);
-        if (chartMaintenanceLineEl) {
-            chartMaintenanceLineEl.style.bottom = `${maintPercent}%`;
-            chartMaintenanceLineEl.style.top = 'auto';
-        }
+        goalLine.style.bottom = `${Math.min((appState.calories.goal / chartMax) * 100, 100)}%`;
+        maintLine.style.bottom = `${Math.min((appState.calories.maintenance / chartMax) * 100, 100)}%`;
 
         historyData.forEach(item => {
             const isViewingDay = item.dateStr === viewingDateString;
-            const heightPercent = Math.min((item.cals / chartMax) * 100, 100);
-
+            const hPct = Math.min((item.cals / chartMax) * 100, 100);
             const col = document.createElement('div');
             col.className = `chart-col ${isViewingDay ? 'active' : ''}`;
+            
+            const diffFromMaint = item.cals - appState.calories.maintenance;
+            const diffText = diffFromMaint === 0 ? '0' : `${diffFromMaint > 0 ? '+' : ''}${diffFromMaint}`;
+            
+            col.innerHTML = `
+                <div class="chart-bar-wrapper">
+                    <div class="bar-diff-text">${diffText}</div>
+                    <div class="chart-bar ${isViewingDay ? 'active' : ''}" style="height: ${Math.max(hPct, 2)}%;"></div>
+                </div>
+            `;
+            barsEl.appendChild(col);
 
-            const barWrapper = document.createElement('div');
-            barWrapper.className = 'chart-bar-wrapper';
-
-            const bar = document.createElement('div');
-            let barClasses = 'chart-bar';
-            if (isViewingDay) barClasses += ' active';
-            bar.className = barClasses;
-            bar.style.height = `${Math.max(heightPercent, 2)}%`;
-
-            // +/- inside bar text has been removed
-            const diffFromMaint = item.cals - state.maintenance;
-            const sign = diffFromMaint > 0 ? '+' : '';
-            const diffText = diffFromMaint === 0 ? '0' : `${sign}${diffFromMaint}`;
-
-            const diffEl = document.createElement('div');
-            diffEl.className = 'bar-diff-text';
-            diffEl.textContent = diffText;
-
-            barWrapper.appendChild(diffEl);
-            barWrapper.appendChild(bar);
-            col.appendChild(barWrapper);
-            chartBarsEl.appendChild(col);
-
-            if (chartLabelsRowEl) {
-                const labelEl = document.createElement('div');
-                labelEl.className = 'chart-label';
-                if (isViewingDay) {
-                    labelEl.style.color = 'var(--text-primary)';
-                    labelEl.style.fontWeight = '600';
-                }
-                labelEl.textContent = item.label;
-                chartLabelsRowEl.appendChild(labelEl);
-            }
+            const labelEl = document.createElement('div');
+            labelEl.className = 'chart-label';
+            if (isViewingDay) { labelEl.style.color = 'var(--text-primary)'; labelEl.style.fontWeight = '600'; }
+            labelEl.textContent = item.label;
+            labelsEl.appendChild(labelEl);
         });
+    }
+
+    function updateCaloriesUI() {
+        let cals = appState.calories.history[viewingDateString] ?? appState.calories.maintenance;
+        getId('calories-current').textContent = cals;
+        getId('metric-goal-val').textContent = appState.calories.goal;
+        getId('metric-maint-val').textContent = appState.calories.maintenance;
+
+        let diff = appState.calories.goal - cals;
+        getId('calories-left').textContent = diff >= 0 ? `${diff} remaining` : `${Math.abs(diff)} over`;
+
+        let pb = getId('progress-bar-fill');
+        pb.style.width = `${Math.min((cals / appState.calories.goal) * 100, 100)}%`;
+        pb.style.background = cals > appState.calories.goal ? 'var(--danger)' : 'var(--accent-primary)';
+        pb.style.boxShadow = cals > appState.calories.goal ? '0 0 10px rgba(239, 68, 68, 0.3)' : '0 0 10px rgba(139, 92, 246, 0.3)';
+
+        renderChart();
+        renderPresets();
     }
 
     function adjustCalories(amount) {
-        let current = state.history[viewingDateString] || 0;
-        current += amount;
-        if (current < 0) current = 0;
-
-        state.history[viewingDateString] = current;
-
-        caloriesCurrentEl.style.transform = 'scale(1.1)';
-        setTimeout(() => {
-            caloriesCurrentEl.style.transform = 'scale(1)';
-        }, 150);
-
+        let current = appState.calories.history[viewingDateString] ?? appState.calories.maintenance;
+        current = Math.max(0, current + amount);
+        appState.calories.history[viewingDateString] = current;
+        getId('calories-current').style.transform = 'scale(1.1)';
+        setTimeout(() => getId('calories-current').style.transform = 'scale(1)', 150);
         saveState();
-        updateUI();
+        updateCaloriesUI();
     }
 
+    getId('btn-minus-100').addEventListener('click', () => adjustCalories(-100));
+    getId('btn-minus-50').addEventListener('click', () => adjustCalories(-50));
+    getId('btn-plus-50').addEventListener('click', () => adjustCalories(50));
+    getId('btn-plus-100').addEventListener('click', () => adjustCalories(100));
+
+    // ---- Presets ----
     function renderPresets() {
-        presetsGrid.innerHTML = '';
-        presets.forEach(preset => {
-            const el = document.createElement('div');
+        const grid = getId('presets-grid');
+        grid.innerHTML = '';
+        presets.forEach(p => {
+            let el = document.createElement('div');
             el.className = 'preset-card';
             el.innerHTML = `
                 <div class="preset-info">
-                    <div class="preset-name">${preset.name}</div>
-                    <div class="preset-cal">${preset.calories > 0 ? '+' : ''}${preset.calories}</div>
+                    <div class="preset-name">${p.name}</div>
+                    <div class="preset-cal">${p.calories > 0 ? '+' : ''}${p.calories}</div>
                 </div>
-                <button class="preset-delete" data-id="${preset.id}" aria-label="Delete preset">
+                <button class="preset-delete" data-id="${p.id}" aria-label="Delete preset">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </button>
             `;
-
             el.addEventListener('click', (e) => {
-                if (e.target.closest('.preset-delete')) return;
-                adjustCalories(preset.calories);
+                if(e.target.closest('.preset-delete')) return;
+                adjustCalories(p.calories);
             });
-
-            const deleteBtn = el.querySelector('.preset-delete');
-            deleteBtn.addEventListener('click', (e) => {
+            el.querySelector('.preset-delete').addEventListener('click', (e) => {
                 e.stopPropagation();
-                presets = presets.filter(p => p.id !== preset.id);
-                savePresets();
+                presets = presets.filter(pr => pr.id !== p.id);
+                saveState();
+                renderPresets();
             });
-
-            presetsGrid.appendChild(el);
+            grid.appendChild(el);
         });
     }
 
-    function setupEventListeners() {
-        // Day Navigation
-        btnPrevDay.addEventListener('click', () => {
-            const d = new Date(viewingDateString + 'T12:00:00');
-            d.setDate(d.getDate() - 1);
-            viewingDateString = getDateString(d);
+    // ---- Weight Logic ----
+    let weightRange = 'month';
+    qAll('#weight-chart-toggles .chart-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+            qAll('#weight-chart-toggles .chart-toggle').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            weightRange = btn.getAttribute('data-range');
+            updateWeightUI();
+        });
+    });
 
-            // Ensure day exists in history
-            if (typeof state.history[viewingDateString] !== 'number') {
-                state.history[viewingDateString] = 0;
+    function updateWeightUI() {
+        let points = [];
+        let now = new Date();
+        let past = new Date();
+        if (weightRange === 'week') past.setDate(now.getDate() - 7);
+        if (weightRange === 'month') past.setMonth(now.getMonth() - 1);
+        if (weightRange === 'year') past.setFullYear(now.getFullYear() - 1);
+        
+        for (let dStr in appState.weight.history) {
+            let dDate = new Date(dStr + 'T12:00:00');
+            if (dDate >= past && dDate <= now) {
+                points.push({ time: dDate.getTime(), y: appState.weight.history[dStr] });
             }
-
-            updateDateElements();
-            updateUI();
-        });
-
-        btnNextDay.addEventListener('click', () => {
-            if (btnNextDay.disabled) return;
-            const d = new Date(viewingDateString + 'T12:00:00');
-            d.setDate(d.getDate() + 1);
-            viewingDateString = getDateString(d);
-
-            // Ensure day exists in history
-            if (typeof state.history[viewingDateString] !== 'number') {
-                state.history[viewingDateString] = 0;
-            }
-
-            updateDateElements();
-            updateUI();
-        });
-
-        // Quick Actions
-        btnMinus100.addEventListener('click', () => adjustCalories(-100));
-        btnMinus50.addEventListener('click', () => adjustCalories(-50));
-        btnPlus50.addEventListener('click', () => adjustCalories(50));
-        btnPlus100.addEventListener('click', () => adjustCalories(100));
-
-        // Calories Modal
-        caloriesCurrentEl.addEventListener('click', () => {
-            caloriesInput.value = state.history[viewingDateString] || 0;
-            caloriesModal.classList.add('active');
-            setTimeout(() => caloriesInput.focus(), 100);
-        });
-
-        btnCancelCalories.addEventListener('click', () => {
-            caloriesModal.classList.remove('active');
-        });
-
-        btnSaveCalories.addEventListener('click', () => {
-            const newCals = parseInt(caloriesInput.value);
-            if (!isNaN(newCals) && newCals >= 0) {
-                state.history[viewingDateString] = newCals;
-                saveState();
-                updateUI();
-            }
-            caloriesModal.classList.remove('active');
-        });
-
-        // Goal Modal
-        if (metricGoalEl) {
-            metricGoalEl.addEventListener('click', () => {
-                goalInput.value = state.goal;
-                goalModal.classList.add('active');
-                setTimeout(() => goalInput.focus(), 100);
-            });
         }
-
-        btnCancelGoal.addEventListener('click', () => {
-            goalModal.classList.remove('active');
-        });
-
-        btnSaveGoal.addEventListener('click', () => {
-            const newGoal = parseInt(goalInput.value);
-            if (!isNaN(newGoal) && newGoal > 0) {
-                state.goal = newGoal;
-                saveState();
-                updateUI();
-            }
-            goalModal.classList.remove('active');
-        });
-
-        // Maintenance Modal
-        if (metricMaintEl) {
-            metricMaintEl.addEventListener('click', () => {
-                maintInput.value = state.maintenance;
-                maintModal.classList.add('active');
-                setTimeout(() => maintInput.focus(), 100);
-            });
-        }
-
-        btnCancelMaint.addEventListener('click', () => {
-            maintModal.classList.remove('active');
-        });
-
-        btnSaveMaint.addEventListener('click', () => {
-            const newMaint = parseInt(maintInput.value);
-            if (!isNaN(newMaint) && newMaint > 0) {
-                state.maintenance = newMaint;
-                saveState();
-                updateUI();
-            }
-            maintModal.classList.remove('active');
-        });
-
-        // Preset Modal
-        btnAddPreset.addEventListener('click', () => {
-            presetNameInput.value = '';
-            presetCalInput.value = '';
-            presetModal.classList.add('active');
-            setTimeout(() => presetNameInput.focus(), 100);
-        });
-
-        btnCancelPreset.addEventListener('click', () => {
-            presetModal.classList.remove('active');
-        });
-
-        btnSavePreset.addEventListener('click', () => {
-            if (presets.length >= 4) {
-                alert('Maximum of 4 presets allowed.');
-                return;
-            }
-            const name = presetNameInput.value.trim();
-            const cal = parseInt(presetCalInput.value);
-            if (name && !isNaN(cal) && cal !== 0) {
-                presets.push({
-                    id: Date.now(),
-                    name: name,
-                    calories: cal
-                });
-                savePresets();
-            }
-            presetModal.classList.remove('active');
-        });
-
-        // Close modals on overlay click
-        [caloriesModal, goalModal, maintModal, presetModal].forEach(modal => {
-            if (modal) {
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
-                        modal.classList.remove('active');
-                    }
-                });
-            }
-        });
-
-        caloriesCurrentEl.style.transition = 'transform 0.15s ease-out';
+        points.sort((a,b) => a.time - b.time);
+        mapLinePath(points, 'weight-chart-line');
+        getId('weight-input').value = appState.weight.history[currentDateString] || 0.0;
     }
+
+    getId('btn-weight-minus').addEventListener('click', () => {
+        let v = parseFloat(getId('weight-input').value) || 0;
+        getId('weight-input').value = Math.max(0, v - 1.0).toFixed(1);
+    });
+    getId('btn-weight-plus').addEventListener('click', () => {
+        let v = parseFloat(getId('weight-input').value) || 0;
+        getId('weight-input').value = (v + 1.0).toFixed(1);
+    });
+    getId('btn-save-weight').addEventListener('click', () => {
+        let v = parseFloat(getId('weight-input').value);
+        if(!isNaN(v) && v > 0) {
+            appState.weight.history[currentDateString] = v;
+            saveState();
+            updateWeightUI();
+        }
+    });
+
+    // ---- Lifts Logic ----
+    let currentPpl = 'push';
+    let activeLiftId = null;
+
+    qAll('.ppl-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentPpl = btn.getAttribute('data-ppl');
+            renderLiftsList();
+        });
+    });
+
+    getId('btn-back-lifts').addEventListener('click', renderLiftsList);
+
+    function renderLiftsList() {
+        getId('lifts-main-view').style.display = 'block';
+        getId('lift-detail-view').style.display = 'none';
+
+        qAll('.ppl-toggle').forEach(btn => {
+            if(btn.getAttribute('data-ppl') === currentPpl) {
+                btn.className = 'btn btn-primary ppl-toggle active';
+            } else {
+                btn.className = 'btn btn-secondary ppl-toggle';
+            }
+        });
+
+        const listEl = getId('lifts-list');
+        listEl.innerHTML = '';
+        appState.lifts.exercises.filter(e => e.group === currentPpl).forEach(ex => {
+            let item = document.createElement('div');
+            item.className = 'lift-item';
+            let recentErm = 0;
+            if(appState.lifts.history[ex.id]) {
+                const dates = Object.keys(appState.lifts.history[ex.id]).sort().reverse();
+                if(dates.length > 0) {
+                    const sets = appState.lifts.history[ex.id][dates[0]];
+                    recentErm = Math.max(...sets.map(s => s.weight * (1 + s.reps/30)));
+                }
+            }
+            item.innerHTML = `<span class="lift-name">${ex.name}</span><div style="display:flex;align-items:center;gap:8px;"><span class="lift-stats">${recentErm > 0 ? Math.round(recentErm)+'lbs 1RM' : ''}</span><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>`;
+            item.addEventListener('click', () => openLiftDetail(ex.id));
+            listEl.appendChild(item);
+        });
+    }
+
+    function openLiftDetail(id) {
+        activeLiftId = id;
+        const ex = appState.lifts.exercises.find(e => e.id === id);
+        getId('lift-detail-title').textContent = ex.name;
+        getId('lifts-main-view').style.display = 'none';
+        getId('lift-detail-view').style.display = 'flex';
+        updateLiftDetailUI();
+    }
+
+    function updateLiftDetailUI() {
+        let history = appState.lifts.history[activeLiftId] || {};
+        let points = [];
+        for(let dStr in history) {
+            let max1RM = Math.max(...history[dStr].map(s => s.weight * (1 + s.reps/30)));
+            if(max1RM > 0) points.push({ time: new Date(dStr + 'T12:00:00').getTime(), y: max1RM });
+        }
+        points.sort((a,b) => a.time - b.time);
+        mapLinePath(points, 'lift-chart-line');
+
+        const setsList = getId('lift-history-list');
+        setsList.innerHTML = '';
+        let todaySets = history[currentDateString] || [];
+        if(todaySets.length === 0) {
+            setsList.innerHTML = '<span style="color:var(--text-secondary); font-size: 13px;">No sets logged today.</span>';
+        } else {
+            todaySets.forEach((s, idx) => {
+                let el = document.createElement('div');
+                el.style = `display: flex; justify-content: space-between; background: var(--surface-hover); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);`;
+                el.innerHTML = `<span style="font-size: 14px; color: var(--text-secondary);">Set ${idx + 1}</span><span style="font-size: 14px; font-weight: var(--font-weight-medium);">${s.weight} lbs × ${s.reps}</span>`;
+                setsList.appendChild(el);
+            });
+        }
+    }
+
+    getId('btn-save-lift-set').addEventListener('click', () => {
+        const w = parseFloat(getId('lift-weight-input').value);
+        const r = parseInt(getId('lift-reps-input').value);
+        if(!isNaN(w) && !isNaN(r) && w > 0 && r > 0) {
+            if(!appState.lifts.history[activeLiftId]) appState.lifts.history[activeLiftId] = {};
+            if(!appState.lifts.history[activeLiftId][currentDateString]) appState.lifts.history[activeLiftId][currentDateString] = [];
+            appState.lifts.history[activeLiftId][currentDateString].push({ weight: w, reps: r });
+            saveState();
+            updateLiftDetailUI();
+            getId('lift-weight-input').value = w; 
+            getId('lift-reps-input').value = '';
+        }
+    });
+
+    getId('btn-delete-lift').addEventListener('click', () => {
+       if(confirm('Are you sure you want to delete this exercise?')) {
+           appState.lifts.exercises = appState.lifts.exercises.filter(e => e.id !== activeLiftId);
+           delete appState.lifts.history[activeLiftId];
+           saveState();
+           renderLiftsList();
+       }
+    });
+
+    // ---- Modals ----
+    const openModal = (id, setupFn) => {
+        getId(id).classList.add('active');
+        if(setupFn) setupFn();
+    };
+    const closeModal = id => getId(id).classList.remove('active');
+
+    getId('calories-current').addEventListener('click', () => {
+        openModal('calories-modal', () => {
+            getId('calories-input').value = appState.calories.history[viewingDateString] ?? appState.calories.maintenance;
+            getId('calories-input').focus();
+        });
+    });
+    getId('btn-save-calories').addEventListener('click', () => {
+        let v = parseInt(getId('calories-input').value);
+        if(!isNaN(v) && v >= 0) {
+            appState.calories.history[viewingDateString] = v;
+            saveState(); updateCaloriesUI();
+        }
+        closeModal('calories-modal');
+    });
+
+    getId('metric-goal').addEventListener('click', () => {
+        openModal('goal-modal', () => { getId('goal-input').value = appState.calories.goal; getId('goal-input').focus(); });
+    });
+    getId('btn-save-goal').addEventListener('click', () => {
+        let v = parseInt(getId('goal-input').value);
+        if(!isNaN(v) && v > 0) { appState.calories.goal = v; saveState(); updateCaloriesUI(); }
+        closeModal('goal-modal');
+    });
+
+    getId('metric-maint').addEventListener('click', () => {
+        openModal('maint-modal', () => { getId('maint-input').value = appState.calories.maintenance; getId('maint-input').focus(); });
+    });
+    getId('btn-save-maint').addEventListener('click', () => {
+        let v = parseInt(getId('maint-input').value);
+        if(!isNaN(v) && v > 0) { appState.calories.maintenance = v; saveState(); updateCaloriesUI(); }
+        closeModal('maint-modal');
+    });
+
+    getId('btn-add-preset').addEventListener('click', () => {
+        openModal('preset-modal', () => { getId('preset-name-input').value = ''; getId('preset-cal-input').value = ''; getId('preset-name-input').focus(); });
+    });
+    getId('btn-save-preset').addEventListener('click', () => {
+        if (presets.length >= 4) return alert('Maximum of 4 presets allowed.');
+        let n = getId('preset-name-input').value.trim(), c = parseInt(getId('preset-cal-input').value);
+        if(n && !isNaN(c) && c !== 0) {
+            presets.push({ id: Date.now(), name: n, calories: c });
+            saveState(); renderPresets();
+        }
+        closeModal('preset-modal');
+    });
+
+    getId('btn-add-lift').addEventListener('click', () => {
+        openModal('lift-modal', () => {
+            getId('lift-name-input').value = '';
+            getId('lift-group-input').value = currentPpl;
+            getId('lift-name-input').focus();
+        });
+    });
+    getId('btn-save-lift').addEventListener('click', () => {
+        let n = getId('lift-name-input').value.trim();
+        let g = getId('lift-group-input').value;
+        if(n) {
+            appState.lifts.exercises.push({ id: Date.now().toString(), name: n, group: g });
+            currentPpl = g;
+            saveState(); renderLiftsList();
+        }
+        closeModal('lift-modal');
+    });
+
+    qAll('[id^=btn-cancel-]').forEach(btn => {
+        btn.addEventListener('click', () => qAll('.modal-overlay').forEach(m => m.classList.remove('active')));
+    });
+
+    // Click outside to close models
+    qAll('.modal-overlay').forEach(mod => {
+        mod.addEventListener('click', e => { if (e.target === mod) mod.classList.remove('active'); });
+    });
+
+    // ---- Tutorial Setup ----
+    if (!appState.settings.tutorialShown) {
+        openModal('tutorial-overlay');
+    }
+    getId('btn-tutorial-close').addEventListener('click', () => {
+        appState.settings.tutorialShown = true;
+        saveState();
+        closeModal('tutorial-overlay');
+    });
+
+    // Startup
+    updateDateElements();
+    updateCaloriesUI();
 });
