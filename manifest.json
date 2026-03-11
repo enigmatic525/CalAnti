@@ -1,14 +1,14 @@
 {
-  "name": "AI Calorie Tracker",
-  "short_name": "CalorieTracker",
-  "description": "A minimalist, dark-themed daily calorie tracker.",
+  "name": "MyTracker",
+  "short_name": "MyTracker",
+  "description": "",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0d0f12",
   "theme_color": "#0d0f12",
   "icons": [
     {
-      "src": "icon.svg",
+      "src": "myicon.png",
       "sizes": "192x192 512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
