@@ -1,46 +1,95 @@
-// My Tracker App Logic
 document.addEventListener('DOMContentLoaded', () => {
-    // ---- State & Migration ----
-    let oldState = JSON.parse(localStorage.getItem('calorieTrackerStateV2') || '{}');
-    let appState = JSON.parse(localStorage.getItem('myTrackerAppState') || 'null');
-    
-    if (!appState) {
-        appState = {
-            calories: {
-                goal: oldState.goal || 2000,
-                maintenance: oldState.maintenance || 2500,
-                history: oldState.history || {}
-            },
-            weight: { history: {} },
-            lifts: {
-                exercises: [
-                    { id: '1', name: 'Bench', group: 'push' },
-                    { id: '2', name: 'Incline Smith', group: 'push' },
-                    { id: '3', name: 'Cable Pushdown', group: 'push' },
-                    { id: '4', name: 'Lateral Raise', group: 'push' },
-                    { id: '5', name: 'Pull Ups', group: 'pull' },
-                    { id: '6', name: 'Low Row', group: 'pull' },
-                    { id: '7', name: 'Dumbbell Curl', group: 'pull' },
-                    { id: '8', name: 'Squat', group: 'legs' },
-                    { id: '9', name: 'Deadlift', group: 'legs' }
-                ],
-                history: {}
-            },
-            settings: { tutorialShown: false }
-        };
-        saveState();
-    }
+    // State
+    const defaultGoal = 2000;
+    const defaultMaintenance = 2500;
 
-    let presets = JSON.parse(localStorage.getItem('calorieTrackerPresets') || 'null') || [
+    let state = {
+        goal: defaultGoal,
+        maintenance: defaultMaintenance,
+        history: {}, // format: { 'YYYY-MM-DD': calories }
+        weightHistory: {},
+        lifts: [
+            { id: 1, name: 'Bench', group: 'push' },
+            { id: 2, name: 'Incline Smith', group: 'push' },
+            { id: 3, name: 'Cable Pushdown', group: 'push' },
+            { id: 4, name: 'Lateral Raise', group: 'push' },
+            { id: 5, name: 'Pull Ups', group: 'pull' },
+            { id: 6, name: 'Low Row', group: 'pull' },
+            { id: 7, name: 'Dumbbell Curl', group: 'pull' },
+            { id: 8, name: 'Squat', group: 'legs' },
+            { id: 9, name: 'Deadlift', group: 'legs' }
+        ],
+        liftSets: {} 
+    };
+
+    let currentDateString = getTodayDateString();
+    let viewingDateString = currentDateString;
+
+    let presets = [
         { id: 1, name: 'Apple', calories: 95 },
         { id: 2, name: 'Banana', calories: 105 },
         { id: 3, name: 'Coffee', calories: 5 },
         { id: 4, name: 'Protein Shake', calories: 150 }
     ];
 
-    function saveState() {
-        localStorage.setItem('myTrackerAppState', JSON.stringify(appState));
-        localStorage.setItem('calorieTrackerPresets', JSON.stringify(presets));
+    // DOM Elements
+    const dateEl = document.getElementById('current-date');
+    const dayLabelEl = document.getElementById('day-label');
+    const caloriesCurrentEl = document.getElementById('calories-current');
+    const caloriesLeftEl = document.getElementById('calories-left');
+    const metricGoalEl = document.getElementById('metric-goal');
+    const metricMaintEl = document.getElementById('metric-maint');
+    const metricGoalValEl = document.getElementById('metric-goal-val');
+    const metricMaintValEl = document.getElementById('metric-maint-val');
+
+    const btnPrevDay = document.getElementById('btn-prev-day');
+    const btnNextDay = document.getElementById('btn-next-day');
+
+    const btnMinus100 = document.getElementById('btn-minus-100');
+    const btnMinus50 = document.getElementById('btn-minus-50');
+    const btnPlus50 = document.getElementById('btn-plus-50');
+    const btnPlus100 = document.getElementById('btn-plus-100');
+    const progressBarFill = document.getElementById('progress-bar-fill');
+    const presetsGrid = document.getElementById('presets-grid');
+
+    const chartBarsEl = document.getElementById('chart-bars');
+    const chartGoalLineEl = document.getElementById('chart-goal-line');
+    const chartMaintenanceLineEl = document.getElementById('chart-maintenance-line');
+    const chartLabelsRowEl = document.getElementById('chart-labels-row');
+    const weeklyDiffLabelEl = document.getElementById('weekly-difference-label');
+
+    // Modals
+    const caloriesModal = document.getElementById('calories-modal');
+    const caloriesInput = document.getElementById('calories-input');
+    const btnCancelCalories = document.getElementById('btn-cancel-calories');
+    const btnSaveCalories = document.getElementById('btn-save-calories');
+
+    const goalModal = document.getElementById('goal-modal');
+    const goalInput = document.getElementById('goal-input');
+    const btnCancelGoal = document.getElementById('btn-cancel-goal');
+    const btnSaveGoal = document.getElementById('btn-save-goal');
+
+    const maintModal = document.getElementById('maint-modal');
+    const maintInput = document.getElementById('maint-input');
+    const btnCancelMaint = document.getElementById('btn-cancel-maint');
+    const btnSaveMaint = document.getElementById('btn-save-maint');
+
+    const presetModal = document.getElementById('preset-modal');
+    const presetNameInput = document.getElementById('preset-name-input');
+    const presetCalInput = document.getElementById('preset-cal-input');
+    const btnAddPreset = document.getElementById('btn-add-preset');
+    const btnCancelPreset = document.getElementById('btn-cancel-preset');
+    const btnSavePreset = document.getElementById('btn-save-preset');
+
+    // Initialization
+    init();
+
+    function init() {
+        loadState();
+        loadPresets();
+        updateDateElements();
+        updateUI();
+        setupEventListeners();
     }
 
     function getDateString(d) {
@@ -50,459 +99,709 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${year}-${month}-${day}`;
     }
 
-    let currentDateString = getDateString(new Date());
-    let viewingDateString = currentDateString;
-
-    // Default missing current dates to maintenance
-    if (appState.calories.history[currentDateString] === undefined) {
-        appState.calories.history[currentDateString] = appState.calories.maintenance;
-        saveState();
+    function getTodayDateString() {
+        return getDateString(new Date());
     }
 
-    // ---- DOM Elements ----
-    const q = sel => document.querySelector(sel);
-    const qAll = sel => document.querySelectorAll(sel);
-    const getId = id => document.getElementById(id);
-
-    const updateDateElements = () => {
-        const d = new Date(viewingDateString + 'T12:00:00');
-        getId('current-date').textContent = d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-
-        if (viewingDateString === currentDateString) {
-            getId('day-label').textContent = 'Today';
-            getId('btn-next-day').disabled = true;
+    function loadState() {
+        const saved = localStorage.getItem('calorieTrackerStateV2');
+        if (saved) {
+            state = JSON.parse(saved);
+            if (!state.maintenance) state.maintenance = defaultMaintenance;
+            if (!state.weightHistory) state.weightHistory = {};
+            if (!state.lifts) state.lifts = [
+                { id: 1, name: 'Bench', group: 'push' },
+                { id: 2, name: 'Incline Smith', group: 'push' },
+                { id: 3, name: 'Cable Pushdown', group: 'push' },
+                { id: 4, name: 'Lateral Raise', group: 'push' },
+                { id: 5, name: 'Pull Ups', group: 'pull' },
+                { id: 6, name: 'Low Row', group: 'pull' },
+                { id: 7, name: 'Dumbbell Curl', group: 'pull' },
+                { id: 8, name: 'Squat', group: 'legs' },
+                { id: 9, name: 'Deadlift', group: 'legs' }
+            ];
+            if (!state.liftSets) state.liftSets = {};
         } else {
-            const currentD = new Date(currentDateString + 'T12:00:00');
-            const diffDays = Math.round((currentD - d) / (1000 * 3600 * 24));
-            getId('day-label').textContent = diffDays === 1 ? 'Yesterday' : `${diffDays} days ago`;
-            getId('btn-next-day').disabled = false;
+            // Migrate from v1
+            const oldSaved = localStorage.getItem('calorieTrackerState');
+            if (oldSaved) {
+                const old = JSON.parse(oldSaved);
+                state.goal = old.goal || defaultGoal;
+                if (old.lastUpdated && typeof old.calories === 'number') {
+                    state.history[old.lastUpdated] = old.calories;
+                }
+            }
         }
-    };
-
-    getId('btn-prev-day').addEventListener('click', () => {
-        const d = new Date(viewingDateString + 'T12:00:00');
-        d.setDate(d.getDate() - 1);
-        viewingDateString = getDateString(d);
-        if (appState.calories.history[viewingDateString] === undefined) {
-            appState.calories.history[viewingDateString] = appState.calories.maintenance;
-            saveState();
+        // Ensure today is initialized
+        if (typeof state.history[currentDateString] !== 'number') {
+            state.history[currentDateString] = 0;
         }
-        updateDateElements();
-        updateCaloriesUI();
-    });
-
-    getId('btn-next-day').addEventListener('click', () => {
-        if (getId('btn-next-day').disabled) return;
-        const d = new Date(viewingDateString + 'T12:00:00');
-        d.setDate(d.getDate() + 1);
-        viewingDateString = getDateString(d);
-        if (appState.calories.history[viewingDateString] === undefined) {
-            appState.calories.history[viewingDateString] = appState.calories.maintenance;
-            saveState();
-        }
-        updateDateElements();
-        updateCaloriesUI();
-    });
-
-    // ---- Tabs Logic ----
-    qAll('.nav-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            const target = tab.getAttribute('data-target');
-            qAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            qAll('.tab-pane').forEach(p => p.classList.remove('active'));
-            getId(target).classList.add('active');
-            if(target === 'tab-calories') updateCaloriesUI();
-            if(target === 'tab-weight') updateWeightUI();
-            if(target === 'tab-lifts') renderLiftsList();
-        });
-    });
-
-    // ---- SVG Mapping ----
-    function mapLinePath(dataPointsList, svgPathId) {
-        const pathEl = getId(svgPathId);
-        if (!dataPointsList || dataPointsList.length < 2) {
-            if(dataPointsList && dataPointsList.length === 1) pathEl.setAttribute('d', `M 0 50 L 100 50`);
-            else pathEl.setAttribute('d', '');
-            return;
-        }
-        const yVals = dataPointsList.map(d => d.y);
-        const minZ = Math.min(...yVals) * 0.98;
-        const maxZ = Math.max(...yVals) * 1.02;
-        const yDiff = maxZ - minZ || 1; 
-
-        const times = dataPointsList.map(d => d.time);
-        const minT = Math.min(...times);
-        const maxT = Math.max(...times);
-        const tDiff = maxT - minT || 1;
-
-        let getX = t => ((t - minT) / tDiff) * 100;
-        let getY = val => 100 - ((val - minZ) / yDiff * 100);
-
-        let path = `M ${getX(times[0])} ${getY(yVals[0])}`;
-        for(let i=1; i<dataPointsList.length; i++) {
-            path += ` L ${getX(times[i])} ${getY(yVals[i])}`;
-        }
-        pathEl.setAttribute('d', path);
     }
 
-    // ---- Calories Logic ----
-    function renderChart() {
-        const barsEl = getId('chart-bars');
-        const labelsEl = getId('chart-labels-row');
-        barsEl.innerHTML = ''; labelsEl.innerHTML = '';
-        const goalLine = getId('chart-goal-line');
-        const maintLine = getId('chart-maintenance-line');
-        const diffLabel = getId('weekly-difference-label');
-
-        let viewD = new Date(viewingDateString + 'T12:00:00');
-        let maxCals = Math.max(appState.calories.goal, appState.calories.maintenance);
-        let historyData = [];
-        let weeklyDiff = 0;
-
-        for (let i = 6; i >= 0; i--) {
-            let tempD = new Date(viewD.getTime() - i * 86400000);
-            let dStr = getDateString(tempD);
-            let c = appState.calories.history[dStr] !== undefined ? appState.calories.history[dStr] : appState.calories.maintenance;
-            if (c > maxCals) maxCals = c;
-            if (c > 0) weeklyDiff += (c - appState.calories.maintenance);
-            historyData.push({ dateStr: dStr, cals: c, label: tempD.toLocaleDateString('en-US', { weekday: 'narrow' }) });
-        }
-
-        let lbsDiff = (weeklyDiff / 3500).toFixed(2);
-        let lbsSign = weeklyDiff > 0 ? '+' : '';
-        diffLabel.textContent = `This Week: ${weeklyDiff > 0 ? '+' : ''}${weeklyDiff} Calories, ${lbsSign}${lbsDiff} lbs`;
-        const chartMax = maxCals * 1.2;
-        goalLine.style.bottom = `${Math.min((appState.calories.goal / chartMax) * 100, 100)}%`;
-        maintLine.style.bottom = `${Math.min((appState.calories.maintenance / chartMax) * 100, 100)}%`;
-
-        historyData.forEach(item => {
-            const isViewingDay = item.dateStr === viewingDateString;
-            const hPct = Math.min((item.cals / chartMax) * 100, 100);
-            const col = document.createElement('div');
-            col.className = `chart-col ${isViewingDay ? 'active' : ''}`;
-            
-            const diffFromMaint = item.cals - appState.calories.maintenance;
-            const diffText = diffFromMaint === 0 ? '0' : `${diffFromMaint > 0 ? '+' : ''}${diffFromMaint}`;
-            
-            col.innerHTML = `
-                <div class="chart-bar-wrapper">
-                    <div class="bar-diff-text">${diffText}</div>
-                    <div class="chart-bar ${isViewingDay ? 'active' : ''}" style="height: ${Math.max(hPct, 2)}%;"></div>
-                </div>
-            `;
-            barsEl.appendChild(col);
-
-            const labelEl = document.createElement('div');
-            labelEl.className = 'chart-label';
-            if (isViewingDay) { labelEl.style.color = 'var(--text-primary)'; labelEl.style.fontWeight = '600'; }
-            labelEl.textContent = item.label;
-            labelsEl.appendChild(labelEl);
-        });
+    function saveState() {
+        localStorage.setItem('calorieTrackerStateV2', JSON.stringify(state));
     }
 
-    function updateCaloriesUI() {
-        let cals = appState.calories.history[viewingDateString] ?? appState.calories.maintenance;
-        getId('calories-current').textContent = cals;
-        getId('metric-goal-val').textContent = appState.calories.goal;
-        getId('metric-maint-val').textContent = appState.calories.maintenance;
-
-        let diff = appState.calories.goal - cals;
-        getId('calories-left').textContent = diff >= 0 ? `${diff} remaining` : `${Math.abs(diff)} over`;
-
-        let pb = getId('progress-bar-fill');
-        pb.style.width = `${Math.min((cals / appState.calories.goal) * 100, 100)}%`;
-        pb.style.background = cals > appState.calories.goal ? 'var(--danger)' : 'var(--accent-primary)';
-        pb.style.boxShadow = cals > appState.calories.goal ? '0 0 10px rgba(239, 68, 68, 0.3)' : '0 0 10px rgba(139, 92, 246, 0.3)';
-
-        renderChart();
+    function loadPresets() {
+        const savedPresets = localStorage.getItem('calorieTrackerPresets');
+        if (savedPresets) {
+            presets = JSON.parse(savedPresets);
+        }
         renderPresets();
     }
 
-    function adjustCalories(amount) {
-        let current = appState.calories.history[viewingDateString] ?? appState.calories.maintenance;
-        current = Math.max(0, current + amount);
-        appState.calories.history[viewingDateString] = current;
-        getId('calories-current').style.transform = 'scale(1.1)';
-        setTimeout(() => getId('calories-current').style.transform = 'scale(1)', 150);
-        saveState();
-        updateCaloriesUI();
+    function savePresets() {
+        localStorage.setItem('calorieTrackerPresets', JSON.stringify(presets));
+        renderPresets();
     }
 
-    getId('btn-minus-100').addEventListener('click', () => adjustCalories(-100));
-    getId('btn-minus-50').addEventListener('click', () => adjustCalories(-50));
-    getId('btn-plus-50').addEventListener('click', () => adjustCalories(50));
-    getId('btn-plus-100').addEventListener('click', () => adjustCalories(100));
+    function updateDateElements() {
+        const d = new Date(viewingDateString + 'T12:00:00');
+        const options = { weekday: 'long', month: 'short', day: 'numeric' };
+        dateEl.textContent = d.toLocaleDateString('en-US', options);
 
-    // ---- Presets ----
+        if (viewingDateString === currentDateString) {
+            dayLabelEl.textContent = 'Today';
+            btnNextDay.disabled = true;
+        } else {
+            const currentD = new Date(currentDateString + 'T12:00:00');
+            const diffTime = currentD.getTime() - d.getTime();
+            const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
+
+            if (diffDays === 1) {
+                dayLabelEl.textContent = 'Yesterday';
+            } else {
+                dayLabelEl.textContent = `${diffDays} days ago`;
+            }
+            btnNextDay.disabled = false;
+        }
+    }
+
+    function updateUI() {
+        let cals = state.history[viewingDateString] || 0;
+        caloriesCurrentEl.textContent = cals;
+        if (metricGoalValEl) metricGoalValEl.textContent = state.goal;
+        if (metricMaintValEl) metricMaintValEl.textContent = state.maintenance;
+
+        let diff = state.goal - cals;
+        if (diff >= 0) {
+            if (caloriesLeftEl) caloriesLeftEl.textContent = `${diff} remaining`;
+        } else {
+            if (caloriesLeftEl) caloriesLeftEl.textContent = `${Math.abs(diff)} over`;
+        }
+
+        // Daily Progress Bar
+        let percentage = (cals / state.goal) * 100;
+        if (percentage > 100) percentage = 100;
+        if (progressBarFill) {
+            progressBarFill.style.width = `${percentage}%`;
+
+            if (cals > state.goal) {
+                progressBarFill.style.background = 'var(--danger)';
+                progressBarFill.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.3)';
+            } else {
+                progressBarFill.style.background = 'var(--accent-primary)';
+                progressBarFill.style.boxShadow = '0 0 10px rgba(139, 92, 246, 0.3)';
+            }
+        }
+
+        renderChart();
+    }
+
+    function renderChart() {
+        chartBarsEl.innerHTML = '';
+        if (chartLabelsRowEl) chartLabelsRowEl.innerHTML = '';
+
+        const daysToShow = 7;
+        const historyData = [];
+        let weeklyDiff = 0;
+
+        // Show 7 days ending on the viewing date
+        let viewD = new Date(viewingDateString + 'T12:00:00');
+        let maxCals = Math.max(state.goal, state.maintenance);
+
+        for (let i = daysToShow - 1; i >= 0; i--) {
+            let tempD = new Date(viewD.getTime() - i * 24 * 60 * 60 * 1000);
+            let dStr = getDateString(tempD);
+            let c = state.history[dStr] || 0;
+            if (c > maxCals) maxCals = c;
+
+            if (c > 0) {
+                weeklyDiff += (c - state.maintenance);
+            }
+
+            historyData.push({
+                dateStr: dStr,
+                cals: c,
+                label: tempD.toLocaleDateString('en-US', { weekday: 'narrow' })
+            });
+        }
+
+        if (weeklyDiffLabelEl) {
+            const sign = weeklyDiff > 0 ? '+' : '';
+            weeklyDiffLabelEl.textContent = `This week: ${sign}${weeklyDiff}`;
+        }
+
+        // Give 20% headroom
+        const chartMax = maxCals * 1.2;
+
+        // Goal line percentage
+        const goalPercent = Math.min((state.goal / chartMax) * 100, 100);
+        chartGoalLineEl.style.bottom = `${goalPercent}%`;
+        chartGoalLineEl.style.top = 'auto';
+
+        // Maintenance line percentage
+        const maintPercent = Math.min((state.maintenance / chartMax) * 100, 100);
+        if (chartMaintenanceLineEl) {
+            chartMaintenanceLineEl.style.bottom = `${maintPercent}%`;
+            chartMaintenanceLineEl.style.top = 'auto';
+        }
+
+        historyData.forEach(item => {
+            const isViewingDay = item.dateStr === viewingDateString;
+            const heightPercent = Math.min((item.cals / chartMax) * 100, 100);
+
+            const col = document.createElement('div');
+            col.className = `chart-col ${isViewingDay ? 'active' : ''}`;
+
+            const barWrapper = document.createElement('div');
+            barWrapper.className = 'chart-bar-wrapper';
+
+            const bar = document.createElement('div');
+            let barClasses = 'chart-bar';
+            if (isViewingDay) barClasses += ' active';
+            bar.className = barClasses;
+            bar.style.height = `${Math.max(heightPercent, 2)}%`;
+
+            // +/- inside bar text has been removed
+            const diffFromMaint = item.cals - state.maintenance;
+            const sign = diffFromMaint > 0 ? '+' : '';
+            const diffText = diffFromMaint === 0 ? '0' : `${sign}${diffFromMaint}`;
+
+            const diffEl = document.createElement('div');
+            diffEl.className = 'bar-diff-text';
+            diffEl.textContent = diffText;
+
+            barWrapper.appendChild(diffEl);
+            barWrapper.appendChild(bar);
+            col.appendChild(barWrapper);
+            chartBarsEl.appendChild(col);
+
+            if (chartLabelsRowEl) {
+                const labelEl = document.createElement('div');
+                labelEl.className = 'chart-label';
+                if (isViewingDay) {
+                    labelEl.style.color = 'var(--text-primary)';
+                    labelEl.style.fontWeight = '600';
+                }
+                labelEl.textContent = item.label;
+                chartLabelsRowEl.appendChild(labelEl);
+            }
+        });
+    }
+
+    function adjustCalories(amount) {
+        let current = state.history[viewingDateString] || 0;
+        current += amount;
+        if (current < 0) current = 0;
+
+        state.history[viewingDateString] = current;
+
+        caloriesCurrentEl.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+            caloriesCurrentEl.style.transform = 'scale(1)';
+        }, 150);
+
+        saveState();
+        updateUI();
+    }
+
     function renderPresets() {
-        const grid = getId('presets-grid');
-        grid.innerHTML = '';
-        presets.forEach(p => {
-            let el = document.createElement('div');
+        presetsGrid.innerHTML = '';
+        presets.forEach(preset => {
+            const el = document.createElement('div');
             el.className = 'preset-card';
             el.innerHTML = `
                 <div class="preset-info">
-                    <div class="preset-name">${p.name}</div>
-                    <div class="preset-cal">${p.calories > 0 ? '+' : ''}${p.calories}</div>
+                    <div class="preset-name">${preset.name}</div>
+                    <div class="preset-cal">${preset.calories > 0 ? '+' : ''}${preset.calories}</div>
                 </div>
-                <button class="preset-delete" data-id="${p.id}" aria-label="Delete preset">
+                <button class="preset-delete" data-id="${preset.id}" aria-label="Delete preset">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </button>
             `;
+
             el.addEventListener('click', (e) => {
-                if(e.target.closest('.preset-delete')) return;
-                adjustCalories(p.calories);
+                if (e.target.closest('.preset-delete')) return;
+                adjustCalories(preset.calories);
             });
-            el.querySelector('.preset-delete').addEventListener('click', (e) => {
+
+            const deleteBtn = el.querySelector('.preset-delete');
+            deleteBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                presets = presets.filter(pr => pr.id !== p.id);
-                saveState();
-                renderPresets();
+                presets = presets.filter(p => p.id !== preset.id);
+                savePresets();
             });
-            grid.appendChild(el);
+
+            presetsGrid.appendChild(el);
         });
     }
 
-    // ---- Weight Logic ----
-    let weightRange = 'month';
-    qAll('#weight-chart-toggles .chart-toggle').forEach(btn => {
-        btn.addEventListener('click', () => {
-            qAll('#weight-chart-toggles .chart-toggle').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            weightRange = btn.getAttribute('data-range');
-            updateWeightUI();
-        });
-    });
+    function setupEventListeners() {
+        // Day Navigation
+        btnPrevDay.addEventListener('click', () => {
+            const d = new Date(viewingDateString + 'T12:00:00');
+            d.setDate(d.getDate() - 1);
+            viewingDateString = getDateString(d);
 
-    function updateWeightUI() {
-        let points = [];
-        let now = new Date();
-        let past = new Date();
-        if (weightRange === 'week') past.setDate(now.getDate() - 7);
-        if (weightRange === 'month') past.setMonth(now.getMonth() - 1);
-        if (weightRange === 'year') past.setFullYear(now.getFullYear() - 1);
+            // Ensure day exists in history
+            if (typeof state.history[viewingDateString] !== 'number') {
+                state.history[viewingDateString] = 0;
+            }
+
+            updateDateElements();
+            updateUI();
+        });
+
+        btnNextDay.addEventListener('click', () => {
+            if (btnNextDay.disabled) return;
+            const d = new Date(viewingDateString + 'T12:00:00');
+            d.setDate(d.getDate() + 1);
+            viewingDateString = getDateString(d);
+
+            // Ensure day exists in history
+            if (typeof state.history[viewingDateString] !== 'number') {
+                state.history[viewingDateString] = 0;
+            }
+
+            updateDateElements();
+            updateUI();
+        });
+
+        // Quick Actions
+        btnMinus100.addEventListener('click', () => adjustCalories(-100));
+        btnMinus50.addEventListener('click', () => adjustCalories(-50));
+        btnPlus50.addEventListener('click', () => adjustCalories(50));
+        btnPlus100.addEventListener('click', () => adjustCalories(100));
+
+        // Calories Modal
+        caloriesCurrentEl.addEventListener('click', () => {
+            caloriesInput.value = state.history[viewingDateString] || 0;
+            caloriesModal.classList.add('active');
+            setTimeout(() => caloriesInput.focus(), 100);
+        });
+
+        btnCancelCalories.addEventListener('click', () => {
+            caloriesModal.classList.remove('active');
+        });
+
+        btnSaveCalories.addEventListener('click', () => {
+            const newCals = parseInt(caloriesInput.value);
+            if (!isNaN(newCals) && newCals >= 0) {
+                state.history[viewingDateString] = newCals;
+                saveState();
+                updateUI();
+            }
+            caloriesModal.classList.remove('active');
+        });
+
+        // Goal Modal
+        if (metricGoalEl) {
+            metricGoalEl.addEventListener('click', () => {
+                goalInput.value = state.goal;
+                goalModal.classList.add('active');
+                setTimeout(() => goalInput.focus(), 100);
+            });
+        }
+
+        btnCancelGoal.addEventListener('click', () => {
+            goalModal.classList.remove('active');
+        });
+
+        btnSaveGoal.addEventListener('click', () => {
+            const newGoal = parseInt(goalInput.value);
+            if (!isNaN(newGoal) && newGoal > 0) {
+                state.goal = newGoal;
+                saveState();
+                updateUI();
+            }
+            goalModal.classList.remove('active');
+        });
+
+        // Maintenance Modal
+        if (metricMaintEl) {
+            metricMaintEl.addEventListener('click', () => {
+                maintInput.value = state.maintenance;
+                maintModal.classList.add('active');
+                setTimeout(() => maintInput.focus(), 100);
+            });
+        }
+
+        btnCancelMaint.addEventListener('click', () => {
+            maintModal.classList.remove('active');
+        });
+
+        btnSaveMaint.addEventListener('click', () => {
+            const newMaint = parseInt(maintInput.value);
+            if (!isNaN(newMaint) && newMaint > 0) {
+                state.maintenance = newMaint;
+                saveState();
+                updateUI();
+            }
+            maintModal.classList.remove('active');
+        });
+
+        // Preset Modal
+        btnAddPreset.addEventListener('click', () => {
+            presetNameInput.value = '';
+            presetCalInput.value = '';
+            presetModal.classList.add('active');
+            setTimeout(() => presetNameInput.focus(), 100);
+        });
+
+        btnCancelPreset.addEventListener('click', () => {
+            presetModal.classList.remove('active');
+        });
+
+        btnSavePreset.addEventListener('click', () => {
+            if (presets.length >= 4) {
+                alert('Maximum of 4 presets allowed.');
+                return;
+            }
+            const name = presetNameInput.value.trim();
+            const cal = parseInt(presetCalInput.value);
+            if (name && !isNaN(cal) && cal !== 0) {
+                presets.push({
+                    id: Date.now(),
+                    name: name,
+                    calories: cal
+                });
+                savePresets();
+            }
+            presetModal.classList.remove('active');
+        });
+
+        // Close modals on overlay click
+        [caloriesModal, goalModal, maintModal, presetModal].forEach(modal => {
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.classList.remove('active');
+                    }
+                });
+            }
+        });
+
+        caloriesCurrentEl.style.transition = 'transform 0.15s ease-out';
         
-        for (let dStr in appState.weight.history) {
-            let dDate = new Date(dStr + 'T12:00:00');
-            if (dDate >= past && dDate <= now) {
-                points.push({ time: dDate.getTime(), y: appState.weight.history[dStr] });
-            }
-        }
-        points.sort((a,b) => a.time - b.time);
-        mapLinePath(points, 'weight-chart-line');
-        getId('weight-input').value = appState.weight.history[currentDateString] || 0.0;
+        setupTabsAndNewFeatures();
     }
 
-    getId('btn-weight-minus').addEventListener('click', () => {
-        let v = parseFloat(getId('weight-input').value) || 0;
-        getId('weight-input').value = Math.max(0, v - 1.0).toFixed(1);
-    });
-    getId('btn-weight-plus').addEventListener('click', () => {
-        let v = parseFloat(getId('weight-input').value) || 0;
-        getId('weight-input').value = (v + 1.0).toFixed(1);
-    });
-    getId('btn-save-weight').addEventListener('click', () => {
-        let v = parseFloat(getId('weight-input').value);
-        if(!isNaN(v) && v > 0) {
-            appState.weight.history[currentDateString] = v;
-            saveState();
-            updateWeightUI();
-        }
-    });
+    // --- NEW FEATURES ---
+    function setupTabsAndNewFeatures() {
+        const navTabs = document.querySelectorAll('.nav-tab');
+        const tabPanes = document.querySelectorAll('.tab-pane');
 
-    // ---- Lifts Logic ----
-    let currentPpl = 'push';
-    let activeLiftId = null;
-
-    qAll('.ppl-toggle').forEach(btn => {
-        btn.addEventListener('click', () => {
-            currentPpl = btn.getAttribute('data-ppl');
-            renderLiftsList();
+        navTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                navTabs.forEach(t => t.classList.remove('active'));
+                tabPanes.forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.getAttribute('data-target')).classList.add('active');
+                if (tab.getAttribute('data-target') === 'tab-weight') {
+                    renderWeightTab();
+                } else if (tab.getAttribute('data-target') === 'tab-lifts') {
+                    renderLiftsTab();
+                }
+            });
         });
-    });
 
-    getId('btn-back-lifts').addEventListener('click', renderLiftsList);
+        // ------ WEIGHT TAB LOGIC
+        const weightInput = document.getElementById('weight-input');
+        const btnWeightMinus = document.getElementById('btn-weight-minus');
+        const btnWeightPlus = document.getElementById('btn-weight-plus');
+        const btnSaveWeight = document.getElementById('btn-save-weight');
+        const weightChartToggles = document.querySelectorAll('#weight-chart-toggles .chart-toggle');
+        let currentWeightRange = 'month';
 
-    function renderLiftsList() {
-        getId('lifts-main-view').style.display = 'block';
-        getId('lift-detail-view').style.display = 'none';
+        weightChartToggles.forEach(t => {
+            t.addEventListener('click', () => {
+                weightChartToggles.forEach(btn => btn.classList.remove('active'));
+                t.classList.add('active');
+                currentWeightRange = t.getAttribute('data-range');
+                renderWeightTab();
+            });
+        });
 
-        qAll('.ppl-toggle').forEach(btn => {
-            if(btn.getAttribute('data-ppl') === currentPpl) {
-                btn.className = 'btn btn-primary ppl-toggle active';
-            } else {
-                btn.className = 'btn btn-secondary ppl-toggle';
+        btnWeightMinus.addEventListener('click', () => {
+            let num = parseFloat(weightInput.value);
+            if(isNaN(num)) num = 0;
+            weightInput.value = (num - 0.1).toFixed(1);
+        });
+        
+        btnWeightPlus.addEventListener('click', () => {
+            let num = parseFloat(weightInput.value);
+            if(isNaN(num)) num = 0;
+            weightInput.value = (num + 0.1).toFixed(1);
+        });
+        
+        btnSaveWeight.addEventListener('click', () => {
+            const val = parseFloat(weightInput.value);
+            if (!isNaN(val) && val > 0) {
+                state.weightHistory[viewingDateString] = val;
+                saveState();
+                renderWeightTab();
+                const orig = btnSaveWeight.textContent;
+                btnSaveWeight.textContent = 'Saved!';
+                setTimeout(() => btnSaveWeight.textContent = orig, 1500);
             }
         });
 
-        const listEl = getId('lifts-list');
-        listEl.innerHTML = '';
-        appState.lifts.exercises.filter(e => e.group === currentPpl).forEach(ex => {
-            let item = document.createElement('div');
-            item.className = 'lift-item';
-            let recentErm = 0;
-            if(appState.lifts.history[ex.id]) {
-                const dates = Object.keys(appState.lifts.history[ex.id]).sort().reverse();
-                if(dates.length > 0) {
-                    const sets = appState.lifts.history[ex.id][dates[0]];
-                    recentErm = Math.max(...sets.map(s => s.weight * (1 + s.reps/30)));
+        function renderWeightTab() {
+            // Update input to current day
+            let lastW = 150.0;
+            const wKeys = Object.keys(state.weightHistory).sort();
+            if(wKeys.length > 0) lastW = state.weightHistory[wKeys[wKeys.length-1]];
+            
+            weightInput.value = state.weightHistory[viewingDateString] || state.weightHistory[getTodayDateString()] || lastW;
+            
+            const svgGroup = document.getElementById('weight-chart-svg');
+            const pathLine = document.getElementById('weight-chart-line');
+            if (!svgGroup || !pathLine) return;
+
+            const daysMap = { 'week': 7, 'month': 30, 'year': 365 };
+            const days = daysMap[currentWeightRange] || 30;
+            let maxW = 0, minW = 9999;
+            let dataPoints = [];
+
+            let viewD = new Date(viewingDateString + 'T12:00:00');
+            for (let i = days - 1; i >= 0; i--) {
+                let tempD = new Date(viewD.getTime() - i * 24 * 60 * 60 * 1000);
+                let dStr = getDateString(tempD);
+                let w = state.weightHistory[dStr];
+                if (w) {
+                    if (w > maxW) maxW = w;
+                    if (w < minW) minW = w;
+                    dataPoints.push({ x: (days - 1 - i), y: w });
                 }
             }
-            item.innerHTML = `<span class="lift-name">${ex.name}</span><div style="display:flex;align-items:center;gap:8px;"><span class="lift-stats">${recentErm > 0 ? Math.round(recentErm)+'lbs 1RM' : ''}</span><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>`;
-            item.addEventListener('click', () => openLiftDetail(ex.id));
-            listEl.appendChild(item);
-        });
-    }
 
-    function openLiftDetail(id) {
-        activeLiftId = id;
-        const ex = appState.lifts.exercises.find(e => e.id === id);
-        getId('lift-detail-title').textContent = ex.name;
-        getId('lifts-main-view').style.display = 'none';
-        getId('lift-detail-view').style.display = 'flex';
-        updateLiftDetailUI();
-    }
+            const texts = svgGroup.querySelectorAll('text');
+            texts.forEach(t => t.remove());
 
-    function updateLiftDetailUI() {
-        let history = appState.lifts.history[activeLiftId] || {};
-        let points = [];
-        for(let dStr in history) {
-            let max1RM = Math.max(...history[dStr].map(s => s.weight * (1 + s.reps/30)));
-            if(max1RM > 0) points.push({ time: new Date(dStr + 'T12:00:00').getTime(), y: max1RM });
+            if (dataPoints.length < 2) {
+                pathLine.setAttribute('d', ''); // Not enough data
+                svgGroup.innerHTML += '<text x="50%" y="50%" fill="var(--text-secondary)" font-size="12" text-anchor="middle" dominant-baseline="middle">Add multiple entries to see trends</text>';
+                return;
+            }
+
+            const rangeW = maxW - minW || 1;
+            svgGroup.setAttribute('viewBox', `0 0 ${days - 1} 100`);
+
+            let dPath = '';
+            dataPoints.forEach((pt, index) => {
+                const px = pt.x;
+                const py = 100 - ((pt.y - minW) / rangeW) * 80 - 10;
+                dPath += (index === 0 ? 'M' : 'L') + `${px},${py} `;
+            });
+            pathLine.setAttribute('d', dPath.trim());
+            
+            if(!svgGroup.querySelector('path')) {
+                svgGroup.appendChild(pathLine);
+            }
         }
-        points.sort((a,b) => a.time - b.time);
-        mapLinePath(points, 'lift-chart-line');
 
-        const setsList = getId('lift-history-list');
-        setsList.innerHTML = '';
-        let todaySets = history[currentDateString] || [];
-        if(todaySets.length === 0) {
-            setsList.innerHTML = '<span style="color:var(--text-secondary); font-size: 13px;">No sets logged today.</span>';
-        } else {
-            todaySets.forEach((s, idx) => {
-                let el = document.createElement('div');
-                el.style = `display: flex; justify-content: space-between; background: var(--surface-hover); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);`;
-                el.innerHTML = `<span style="font-size: 14px; color: var(--text-secondary);">Set ${idx + 1}</span><span style="font-size: 14px; font-weight: var(--font-weight-medium);">${s.weight} lbs × ${s.reps}</span>`;
-                setsList.appendChild(el);
+        // ------ LIFTS TAB LOGIC
+        const pplToggles = document.querySelectorAll('.ppl-toggle');
+        const liftsList = document.getElementById('lifts-list');
+        const liftsMainView = document.getElementById('lifts-main-view');
+        const liftDetailView = document.getElementById('lift-detail-view');
+        const btnBackLifts = document.getElementById('btn-back-lifts');
+        const liftDetailTitle = document.getElementById('lift-detail-title');
+        
+        let currentPPL = 'push';
+        let currentLiftId = null;
+
+        pplToggles.forEach(t => {
+            t.addEventListener('click', () => {
+                pplToggles.forEach(btn => btn.classList.remove('active', 'btn-primary'));
+                t.classList.add('active', 'btn-primary');
+                currentPPL = t.getAttribute('data-ppl');
+                renderLiftsTab();
+            });
+        });
+
+        btnBackLifts.addEventListener('click', () => {
+            liftDetailView.style.display = 'none';
+            liftsMainView.style.display = 'block';
+            currentLiftId = null;
+        });
+
+        function renderLiftsTab() {
+            liftsList.innerHTML = '';
+            const filteredLifts = state.lifts.filter(l => l.group === currentPPL);
+            filteredLifts.forEach(lift => {
+                const el = document.createElement('div');
+                el.className = 'lift-item';
+                
+                let last1RM = '--';
+                if(state.liftSets[lift.id] && state.liftSets[lift.id].length > 0) {
+                    last1RM = state.liftSets[lift.id][state.liftSets[lift.id].length - 1].est1RM + ' lbs';
+                }
+                el.innerHTML = `
+                    <div>
+                        <div class="lift-name">${lift.name}</div>
+                        <div class="lift-meta">Est. 1RM: ${last1RM}</div>
+                    </div>
+                `;
+                el.addEventListener('click', () => openLiftDetail(lift));
+                liftsList.appendChild(el);
             });
         }
-    }
 
-    getId('btn-save-lift-set').addEventListener('click', () => {
-        const w = parseFloat(getId('lift-weight-input').value);
-        const r = parseInt(getId('lift-reps-input').value);
-        if(!isNaN(w) && !isNaN(r) && w > 0 && r > 0) {
-            if(!appState.lifts.history[activeLiftId]) appState.lifts.history[activeLiftId] = {};
-            if(!appState.lifts.history[activeLiftId][currentDateString]) appState.lifts.history[activeLiftId][currentDateString] = [];
-            appState.lifts.history[activeLiftId][currentDateString].push({ weight: w, reps: r });
-            saveState();
-            updateLiftDetailUI();
-            getId('lift-weight-input').value = w; 
-            getId('lift-reps-input').value = '';
+        function openLiftDetail(lift) {
+            currentLiftId = lift.id;
+            liftDetailTitle.textContent = lift.name;
+            liftsMainView.style.display = 'none';
+            liftDetailView.style.display = 'flex';
+            renderLiftDetail();
         }
-    });
 
-    getId('btn-delete-lift').addEventListener('click', () => {
-       if(confirm('Are you sure you want to delete this exercise?')) {
-           appState.lifts.exercises = appState.lifts.exercises.filter(e => e.id !== activeLiftId);
-           delete appState.lifts.history[activeLiftId];
-           saveState();
-           renderLiftsList();
-       }
-    });
+        const btnSaveLiftSet = document.getElementById('btn-save-lift-set');
+        const liftWeightInput = document.getElementById('lift-weight-input');
+        const liftRepsInput = document.getElementById('lift-reps-input');
+        const liftHistoryList = document.getElementById('lift-history-list');
 
-    // ---- Modals ----
-    const openModal = (id, setupFn) => {
-        getId(id).classList.add('active');
-        if(setupFn) setupFn();
-    };
-    const closeModal = id => getId(id).classList.remove('active');
-
-    getId('calories-current').addEventListener('click', () => {
-        openModal('calories-modal', () => {
-            getId('calories-input').value = appState.calories.history[viewingDateString] ?? appState.calories.maintenance;
-            getId('calories-input').focus();
+        btnSaveLiftSet.addEventListener('click', () => {
+            const w = parseFloat(liftWeightInput.value);
+            const r = parseInt(liftRepsInput.value);
+            if (!isNaN(w) && w > 0 && !isNaN(r) && r > 0 && currentLiftId) {
+                const est1RM = Math.round(w * (1 + r / 30));
+                if (!state.liftSets[currentLiftId]) state.liftSets[currentLiftId] = [];
+                state.liftSets[currentLiftId].push({
+                    id: Date.now(),
+                    date: viewingDateString,
+                    weight: w,
+                    reps: r,
+                    est1RM: est1RM
+                });
+                saveState();
+                renderLiftDetail();
+                liftWeightInput.value = '';
+                liftRepsInput.value = '';
+            }
         });
-    });
-    getId('btn-save-calories').addEventListener('click', () => {
-        let v = parseInt(getId('calories-input').value);
-        if(!isNaN(v) && v >= 0) {
-            appState.calories.history[viewingDateString] = v;
-            saveState(); updateCaloriesUI();
-        }
-        closeModal('calories-modal');
-    });
 
-    getId('metric-goal').addEventListener('click', () => {
-        openModal('goal-modal', () => { getId('goal-input').value = appState.calories.goal; getId('goal-input').focus(); });
-    });
-    getId('btn-save-goal').addEventListener('click', () => {
-        let v = parseInt(getId('goal-input').value);
-        if(!isNaN(v) && v > 0) { appState.calories.goal = v; saveState(); updateCaloriesUI(); }
-        closeModal('goal-modal');
-    });
-
-    getId('metric-maint').addEventListener('click', () => {
-        openModal('maint-modal', () => { getId('maint-input').value = appState.calories.maintenance; getId('maint-input').focus(); });
-    });
-    getId('btn-save-maint').addEventListener('click', () => {
-        let v = parseInt(getId('maint-input').value);
-        if(!isNaN(v) && v > 0) { appState.calories.maintenance = v; saveState(); updateCaloriesUI(); }
-        closeModal('maint-modal');
-    });
-
-    getId('btn-add-preset').addEventListener('click', () => {
-        openModal('preset-modal', () => { getId('preset-name-input').value = ''; getId('preset-cal-input').value = ''; getId('preset-name-input').focus(); });
-    });
-    getId('btn-save-preset').addEventListener('click', () => {
-        if (presets.length >= 4) return alert('Maximum of 4 presets allowed.');
-        let n = getId('preset-name-input').value.trim(), c = parseInt(getId('preset-cal-input').value);
-        if(n && !isNaN(c) && c !== 0) {
-            presets.push({ id: Date.now(), name: n, calories: c });
-            saveState(); renderPresets();
-        }
-        closeModal('preset-modal');
-    });
-
-    getId('btn-add-lift').addEventListener('click', () => {
-        openModal('lift-modal', () => {
-            getId('lift-name-input').value = '';
-            getId('lift-group-input').value = currentPpl;
-            getId('lift-name-input').focus();
+        document.getElementById('btn-delete-lift').addEventListener('click', () => {
+            if (confirm('Delete this exercise and all its history?')) {
+                state.lifts = state.lifts.filter(l => l.id !== currentLiftId);
+                delete state.liftSets[currentLiftId];
+                saveState();
+                btnBackLifts.click();
+                renderLiftsTab();
+            }
         });
-    });
-    getId('btn-save-lift').addEventListener('click', () => {
-        let n = getId('lift-name-input').value.trim();
-        let g = getId('lift-group-input').value;
-        if(n) {
-            appState.lifts.exercises.push({ id: Date.now().toString(), name: n, group: g });
-            currentPpl = g;
-            saveState(); renderLiftsList();
+
+        function renderLiftDetail() {
+            liftHistoryList.innerHTML = '';
+            const sets = state.liftSets[currentLiftId] || [];
+            
+            const todaySets = sets.filter(s => s.date === viewingDateString);
+            if (todaySets.length === 0) {
+                liftHistoryList.innerHTML = '<div style="font-size: 13px; color: var(--text-secondary);">No sets recorded today.</div>';
+            } else {
+                todaySets.forEach(set => {
+                    const el = document.createElement('div');
+                    el.className = 'set-item';
+                    el.innerHTML = `
+                        <div class="set-meta">
+                            <span>${set.weight} lbs × ${set.reps}</span>
+                        </div>
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <span class="set-1rm">${set.est1RM} 1RM</span>
+                            <button class="btn-delete-set" data-id="${set.id}">×</button>
+                        </div>
+                    `;
+                    el.querySelector('.btn-delete-set').addEventListener('click', () => {
+                        state.liftSets[currentLiftId] = state.liftSets[currentLiftId].filter(s => s.id !== set.id);
+                        saveState();
+                        renderLiftDetail();
+                    });
+                    liftHistoryList.appendChild(el);
+                });
+            }
+
+            const svgGroup = document.getElementById('lift-chart-svg');
+            const pathLine = document.getElementById('lift-chart-line');
+            if(!svgGroup || !pathLine) return;
+
+            const texts = svgGroup.querySelectorAll('text');
+            texts.forEach(t => t.remove());
+
+            if (sets.length < 2) {
+                pathLine.setAttribute('d', '');
+                svgGroup.innerHTML += '<text x="50%" y="50%" fill="var(--text-secondary)" font-size="12" text-anchor="middle" dominant-baseline="middle">Add sets to see 1RM progression</text>';
+                return;
+            }
+
+            let max1RM = 0, min1RM = 9999;
+            sets.forEach(s => {
+                if (s.est1RM > max1RM) max1RM = s.est1RM;
+                if (s.est1RM < min1RM) min1RM = s.est1RM;
+            });
+
+            const rangeR = max1RM - min1RM || 1;
+            svgGroup.setAttribute('viewBox', `0 0 ${sets.length - 1} 100`);
+            
+            let dPath = '';
+            sets.forEach((set, index) => {
+                const px = index;
+                const py = 100 - ((set.est1RM - min1RM) / rangeR) * 80 - 10;
+                dPath += (index === 0 ? 'M' : 'L') + `${px},${py} `;
+            });
+            pathLine.setAttribute('d', dPath.trim());
+            if(!svgGroup.querySelector('path')) {
+                svgGroup.appendChild(pathLine);
+            }
         }
-        closeModal('lift-modal');
-    });
 
-    qAll('[id^=btn-cancel-]').forEach(btn => {
-        btn.addEventListener('click', () => qAll('.modal-overlay').forEach(m => m.classList.remove('active')));
-    });
+        // Add Lift Modal
+        const liftModal = document.getElementById('lift-modal');
+        const liftNameInput = document.getElementById('lift-name-input');
+        const liftGroupInput = document.getElementById('lift-group-input');
+        
+        document.getElementById('btn-add-lift').addEventListener('click', () => {
+            liftNameInput.value = '';
+            liftGroupInput.value = currentPPL;
+            liftModal.classList.add('active');
+        });
 
-    // Click outside to close models
-    qAll('.modal-overlay').forEach(mod => {
-        mod.addEventListener('click', e => { if (e.target === mod) mod.classList.remove('active'); });
-    });
+        document.getElementById('btn-cancel-lift').addEventListener('click', () => {
+            liftModal.classList.remove('active');
+        });
 
-    // ---- Tutorial Setup ----
-    if (!appState.settings.tutorialShown) {
-        openModal('tutorial-overlay');
+        document.getElementById('btn-save-lift').addEventListener('click', () => {
+            const name = liftNameInput.value.trim();
+            const grp = liftGroupInput.value;
+            if (name) {
+                state.lifts.push({
+                    id: Date.now(),
+                    name: name,
+                    group: grp
+                });
+                saveState();
+                renderLiftsTab();
+            }
+            liftModal.classList.remove('active');
+        });
+
+        if (liftModal) {
+            liftModal.addEventListener('click', (e) => {
+                if (e.target === liftModal) liftModal.classList.remove('active');
+            });
+        }
+        
+        // Initial tab render
+        renderLiftsTab();
     }
-    getId('btn-tutorial-close').addEventListener('click', () => {
-        appState.settings.tutorialShown = true;
-        saveState();
-        closeModal('tutorial-overlay');
-    });
-
-    // Startup
-    updateDateElements();
-    updateCaloriesUI();
 });
