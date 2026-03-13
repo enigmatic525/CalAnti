@@ -246,11 +246,11 @@
     <!-- Modal for Settings -->
     <div class="modal-overlay" id="modal-settings">
         <div class="modal-content" style="max-width: 320px;">
-            <div class="modal-header">
-                <h2>Settings</h2>
-                <button class="close-modal" id="close-modal-settings">&times;</button>
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h2 style="font-weight: 200; font-size: 24px;">Settings</h2>
+                <button class="close-modal" id="close-modal-settings" style="background: none; border: none; font-size: 28px; line-height: 1; color: var(--text-secondary); opacity: 0.5; font-weight: 200; cursor: pointer; padding: 0;">&times;</button>
             </div>
-            <div class="modal-body" style="display: flex; flex-direction: column; gap: 24px; padding-top: 8px;">
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 24px;">
                 <!-- Theme Color -->
                 <div>
                     <label style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; display: block;">Theme Color</label>
@@ -270,9 +270,6 @@
                         <button class="btn btn-secondary unit-toggle" data-unit="metric" style="flex: 1;">Metric (kg)</button>
                     </div>
                 </div>
-            </div>
-            <div class="modal-footer" style="padding-top: 16px;">
-                <button class="btn btn-primary" id="btn-save-settings" style="width: 100%;">Close</button>
             </div>
         </div>
     </div>

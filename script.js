@@ -599,10 +599,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function switchToTab(index) {
             const clamped = Math.max(0, Math.min(navTabs.length - 1, index));
+            const oldIdx = navTabs.findIndex(t => t.classList.contains('active'));
+            if (oldIdx === clamped) return;
+
             navTabs.forEach(t => t.classList.remove('active'));
-            tabPanes.forEach(p => p.classList.remove('active'));
             navTabs[clamped].classList.add('active');
-            document.getElementById(navTabs[clamped].getAttribute('data-target')).classList.add('active');
+
+            const dir = clamped > oldIdx ? 'right' : 'left'; // going right means new tab enters from right
+
+            tabPanes.forEach(p => {
+                p.classList.remove('active', 'slide-in-right', 'slide-in-left', 'slide-out-right', 'slide-out-left');
+            });
+
+            if (oldIdx >= 0) {
+                const oldPane = document.getElementById(navTabs[oldIdx].getAttribute('data-target'));
+                oldPane.classList.add('active', dir === 'right' ? 'slide-out-left' : 'slide-out-right');
+                // Remove old pane after animation
+                setTimeout(() => {
+                    if (!oldPane.classList.contains('slide-in-right') && !oldPane.classList.contains('slide-in-left')) {
+                        oldPane.classList.remove('active', 'slide-out-left', 'slide-out-right');
+                    }
+                }, 250);
+            }
+
+            const newPane = document.getElementById(navTabs[clamped].getAttribute('data-target'));
+            newPane.classList.add('active', dir === 'right' ? 'slide-in-right' : 'slide-in-left');
+
             const target = navTabs[clamped].getAttribute('data-target');
             if (target === 'tab-weight') renderWeightTab();
             else if (target === 'tab-lifts') renderLiftsTab();
@@ -636,8 +658,10 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('modal-settings').classList.remove('active');
         });
 
-        document.getElementById('btn-save-settings').addEventListener('click', () => {
-            document.getElementById('modal-settings').classList.remove('active');
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.addEventListener('click', e => {
+                if (e.target === modal) modal.classList.remove('active');
+            });
         });
 
         document.querySelectorAll('.theme-color-btn').forEach(btn => {
