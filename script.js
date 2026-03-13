@@ -19,7 +19,9 @@ document.addEventListener('DOMContentLoaded', () => {
             { id: 8, name: 'Squat', group: 'legs' },
             { id: 9, name: 'Deadlift', group: 'legs' }
         ],
-        liftSets: {} 
+        liftSets: {},
+        theme: 'purple',
+        unit: 'imperial'
     };
 
     let currentDateString = getTodayDateString();
@@ -137,6 +139,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 { id: 9, name: 'Deadlift', group: 'legs' }
             ];
             if (!state.liftSets) state.liftSets = {};
+            if (!state.theme) state.theme = 'purple';
+            if (!state.unit) state.unit = 'imperial';
         } else {
             // Migrate from v1
             const oldSaved = localStorage.getItem('calorieTrackerState');
@@ -152,7 +156,29 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof state.history[currentDateString] !== 'number') {
             state.history[currentDateString] = 0;
         }
+        
+        applyThemeAndUnits();
     }
+
+    function applyThemeAndUnits() {
+        document.body.className = `theme-${state.theme}`;
+        
+        // Update unit labels
+        const unitName = state.unit === 'metric' ? 'kg' : 'lbs';
+        const weightLabel = document.getElementById('weight-unit-label');
+        if (weightLabel) weightLabel.textContent = unitName;
+        
+        // Settings modal UI sync
+        document.querySelectorAll('.theme-color-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-color') === state.theme);
+        });
+        document.querySelectorAll('.unit-toggle').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-unit') === state.unit);
+            btn.classList.toggle('btn-primary', btn.getAttribute('data-unit') === state.unit);
+            btn.classList.toggle('btn-secondary', btn.getAttribute('data-unit') !== state.unit);
+        });
+    }
+
 
     function saveState() {
         localStorage.setItem('calorieTrackerStateV2', JSON.stringify(state));
@@ -258,9 +284,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (weeklyDiffLabelEl) {
             const calSign = weeklyDiff > 0 ? '+' : '';
-            const lbs = (weeklyDiff / 3500).toFixed(1);
-            const lbSign = weeklyDiff > 0 ? '+' : '';
-            weeklyDiffLabelEl.textContent = `This Week: ${calSign}${weeklyDiff} cal, ${lbSign}${lbs} lbs`;
+            if (state.unit === 'metric') {
+                const kgs = (weeklyDiff / 7700).toFixed(1);
+                const kgSign = weeklyDiff > 0 ? '+' : '';
+                weeklyDiffLabelEl.textContent = `This Week: ${calSign}${weeklyDiff} cal, ${kgSign}${kgs} kg`;
+            } else {
+                const lbs = (weeklyDiff / 3500).toFixed(1);
+                const lbSign = weeklyDiff > 0 ? '+' : '';
+                weeklyDiffLabelEl.textContent = `This Week: ${calSign}${weeklyDiff} cal, ${lbSign}${lbs} lbs`;
+            }
         }
 
         // Give 20% headroom
@@ -437,13 +469,20 @@ document.addEventListener('DOMContentLoaded', () => {
         function updateGoalModal() {
             goalDisplay.textContent = goalVal;
             const diff = goalVal - state.maintenance;
-            const lbsPerWeek = (diff * 7 / 3500).toFixed(1);
             const dir = diff > 0 ? 'gain' : diff < 0 ? 'lose' : 'maintain';
-            const absLbs = Math.abs(lbsPerWeek);
+            
             if (dir === 'maintain') {
                 goalModalNote.textContent = 'Based on your TDEE, you are set to maintain your weight.';
             } else {
-                goalModalNote.textContent = `Based on your TDEE, you can expect to ${dir} ${absLbs} pounds per week.`;
+                const isMetric = state.unit === 'metric';
+                const divisor = isMetric ? 7700 : 3500;
+                const unitName = isMetric ? 'kg' : 'pound';
+                const unitNamePlural = isMetric ? 'kg' : 'pounds';
+                
+                const weightPerWeek = Math.abs((diff * 7 / divisor).toFixed(1));
+                const unitString = weightPerWeek == 1.0 ? unitName : unitNamePlural;
+                
+                goalModalNote.textContent = `Based on your TDEE, you can expect to ${dir} ${weightPerWeek} ${unitString} per week.`;
             }
         }
 
@@ -588,6 +627,36 @@ document.addEventListener('DOMContentLoaded', () => {
             switchToTab(activeIdx + (dx < 0 ? 1 : -1));
         }, { passive: true });
 
+        document.getElementById('btn-settings').addEventListener('click', () => {
+            applyThemeAndUnits();
+            document.getElementById('modal-settings').classList.add('active');
+        });
+
+        document.getElementById('close-modal-settings').addEventListener('click', () => {
+            document.getElementById('modal-settings').classList.remove('active');
+        });
+
+        document.getElementById('btn-save-settings').addEventListener('click', () => {
+            document.getElementById('modal-settings').classList.remove('active');
+        });
+
+        document.querySelectorAll('.theme-color-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                state.theme = btn.getAttribute('data-color');
+                saveState();
+                applyThemeAndUnits();
+            });
+        });
+
+        document.querySelectorAll('.unit-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                state.unit = btn.getAttribute('data-unit');
+                saveState();
+                applyThemeAndUnits();
+                updateUI(); // refreshes text/labels
+            });
+        });
+
         // ------ WEIGHT TAB LOGIC
         const weightInput = document.getElementById('weight-input');
         const btnWeightMinus = document.getElementById('btn-weight-minus');
@@ -633,31 +702,35 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update input to viewing/today's logged weight
             const wKeys = Object.keys(state.weightHistory).sort();
             let lastW = wKeys.length > 0 ? state.weightHistory[wKeys[wKeys.length - 1]] : 150.0;
-            weightInput.value = state.weightHistory[viewingDateString] 
-                             || state.weightHistory[getTodayDateString()] 
+            weightInput.value = state.weightHistory[viewingDateString]
+                             || state.weightHistory[getTodayDateString()]
                              || lastW;
 
             const svgEl = document.getElementById('weight-chart-svg');
             const emptyEl = document.getElementById('weight-chart-empty');
+            const yAxisEl = document.getElementById('weight-y-axis');
+            const xAxisEl = document.getElementById('weight-x-axis');
             if (!svgEl) return;
 
-            // Clear previous path content but keep the path element
             const pathLine = document.getElementById('weight-chart-line');
-
             const daysMap = { 'week': 7, 'month': 30, 'year': 365 };
             const days = daysMap[currentWeightRange] || 30;
 
-            // Collect data points in order
+            // Collect all dated data points
+            let allDates = [];
             let dataPoints = [];
             let viewD = new Date(viewingDateString + 'T12:00:00');
             for (let i = days - 1; i >= 0; i--) {
                 let tempD = new Date(viewD.getTime() - i * 24 * 60 * 60 * 1000);
                 let dStr = getDateString(tempD);
+                allDates.push({ slotIndex: days - 1 - i, date: tempD, dateStr: dStr });
                 let w = state.weightHistory[dStr];
-                if (w) {
-                    dataPoints.push({ slotIndex: days - 1 - i, y: w });
-                }
+                if (w) dataPoints.push({ slotIndex: days - 1 - i, y: w, date: tempD });
             }
+
+            // Clear axes
+            if (yAxisEl) yAxisEl.innerHTML = '';
+            if (xAxisEl) xAxisEl.innerHTML = '';
 
             if (dataPoints.length < 2) {
                 pathLine.setAttribute('d', '');
@@ -667,7 +740,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (emptyEl) emptyEl.style.display = 'none';
 
-            // Find y range with some padding
+            // Y range with padding
             let maxW = Math.max(...dataPoints.map(p => p.y));
             let minW = Math.min(...dataPoints.map(p => p.y));
             const yPad = Math.max((maxW - minW) * 0.15, 0.5);
@@ -675,16 +748,52 @@ document.addEventListener('DOMContentLoaded', () => {
             minW -= yPad;
             const yRange = maxW - minW;
 
-            // viewBox: 0 0 (days-1) 100 — x mapped 0..days-1, y mapped 0..100 (0=top)
-            svgEl.setAttribute('viewBox', `0 0 ${days - 1} 100`);
+            // --- Y-axis labels (4 ticks: top, 2/3, 1/3, bottom)
+            if (yAxisEl) {
+                const ticks = 4;
+                for (let t = 0; t < ticks; t++) {
+                    const frac = t / (ticks - 1);           // 0 = top, 1 = bottom
+                    const val = maxW - frac * yRange;
+                    const lbl = document.createElement('div');
+                    lbl.style.cssText = 'font-size: 10px; color: var(--text-secondary); line-height: 1; font-variant-numeric: tabular-nums;';
+                    lbl.textContent = val.toFixed(1);
+                    yAxisEl.appendChild(lbl);
+                }
+            }
 
+            // --- X-axis labels (pick ~5 evenly spaced dates from actual data)
+            if (xAxisEl) {
+                // Number of labels scales with range
+                const maxLabels = currentWeightRange === 'week' ? 7 : currentWeightRange === 'month' ? 6 : 6;
+                const step = Math.max(1, Math.floor((days - 1) / (maxLabels - 1)));
+                const labelSlots = new Set();
+                for (let s = 0; s < days; s += step) labelSlots.add(s);
+                labelSlots.add(days - 1); // always include last
+
+                xAxisEl.style.position = 'relative';
+                xAxisEl.style.height = '16px';
+
+                labelSlots.forEach(slot => {
+                    const d = allDates[slot];
+                    if (!d) return;
+                    const lbl = document.createElement('div');
+                    lbl.style.cssText = `position: absolute; left: ${(slot / (days - 1)) * 100}%; transform: translateX(-50%); font-size: 10px; color: var(--text-secondary); white-space: nowrap;`;
+                    const fmt = currentWeightRange === 'year'
+                        ? d.date.toLocaleDateString('en-US', { month: 'short' })
+                        : d.date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+                    lbl.textContent = fmt;
+                    xAxisEl.appendChild(lbl);
+                });
+            }
+
+            // --- SVG path
+            svgEl.setAttribute('viewBox', `0 0 ${days - 1} 100`);
             let dPath = '';
             dataPoints.forEach((pt, index) => {
                 const px = pt.slotIndex;
                 const py = 100 - ((pt.y - minW) / yRange) * 100;
                 dPath += (index === 0 ? 'M' : 'L') + `${px.toFixed(2)},${py.toFixed(2)} `;
             });
-
             pathLine.setAttribute('d', dPath.trim());
         }
 
