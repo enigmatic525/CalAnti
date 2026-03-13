@@ -555,22 +555,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- NEW FEATURES ---
     function setupTabsAndNewFeatures() {
-        const navTabs = document.querySelectorAll('.nav-tab');
+        const navTabs = Array.from(document.querySelectorAll('.nav-tab'));
         const tabPanes = document.querySelectorAll('.tab-pane');
 
-        navTabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                navTabs.forEach(t => t.classList.remove('active'));
-                tabPanes.forEach(p => p.classList.remove('active'));
-                tab.classList.add('active');
-                document.getElementById(tab.getAttribute('data-target')).classList.add('active');
-                if (tab.getAttribute('data-target') === 'tab-weight') {
-                    renderWeightTab();
-                } else if (tab.getAttribute('data-target') === 'tab-lifts') {
-                    renderLiftsTab();
-                }
-            });
+        function switchToTab(index) {
+            const clamped = Math.max(0, Math.min(navTabs.length - 1, index));
+            navTabs.forEach(t => t.classList.remove('active'));
+            tabPanes.forEach(p => p.classList.remove('active'));
+            navTabs[clamped].classList.add('active');
+            document.getElementById(navTabs[clamped].getAttribute('data-target')).classList.add('active');
+            const target = navTabs[clamped].getAttribute('data-target');
+            if (target === 'tab-weight') renderWeightTab();
+            else if (target === 'tab-lifts') renderLiftsTab();
+        }
+
+        navTabs.forEach((tab, i) => {
+            tab.addEventListener('click', () => switchToTab(i));
         });
+
+        // Horizontal swipe to change tabs
+        let touchStartX = 0;
+        let touchStartY = 0;
+        document.addEventListener('touchstart', e => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+        document.addEventListener('touchend', e => {
+            const dx = e.changedTouches[0].clientX - touchStartX;
+            const dy = e.changedTouches[0].clientY - touchStartY;
+            if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return; // too short or mostly vertical
+            const activeIdx = navTabs.findIndex(t => t.classList.contains('active'));
+            switchToTab(activeIdx + (dx < 0 ? 1 : -1));
+        }, { passive: true });
 
         // ------ WEIGHT TAB LOGIC
         const weightInput = document.getElementById('weight-input');
