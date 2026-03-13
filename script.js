@@ -242,20 +242,25 @@ document.addEventListener('DOMContentLoaded', () => {
             let c = state.history[dStr] || 0;
             if (c > maxCals) maxCals = c;
 
+        // Only count days that actually have an entry
             if (c > 0) {
                 weeklyDiff += (c - state.maintenance);
             }
 
+            // Push null for days with no entry (they'll render as empty columns)
             historyData.push({
                 dateStr: dStr,
                 cals: c,
+                hasEntry: c > 0,
                 label: tempD.toLocaleDateString('en-US', { weekday: 'narrow' })
             });
         }
 
         if (weeklyDiffLabelEl) {
-            const sign = weeklyDiff > 0 ? '+' : '';
-            weeklyDiffLabelEl.textContent = `This week: ${sign}${weeklyDiff}`;
+            const calSign = weeklyDiff > 0 ? '+' : '';
+            const lbs = (weeklyDiff / 3500).toFixed(1);
+            const lbSign = weeklyDiff > 0 ? '+' : '';
+            weeklyDiffLabelEl.textContent = `This Week: ${calSign}${weeklyDiff} cal, ${lbSign}${lbs} lbs`;
         }
 
         // Give 20% headroom
@@ -275,7 +280,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         historyData.forEach(item => {
             const isViewingDay = item.dateStr === viewingDateString;
-            const heightPercent = Math.min((item.cals / chartMax) * 100, 100);
+            // Only render a bar if the day has actual data
+            const heightPercent = item.hasEntry
+                ? Math.min((item.cals / chartMax) * 100, 100)
+                : 0;
 
             const col = document.createElement('div');
             col.className = `chart-col ${isViewingDay ? 'active' : ''}`;
@@ -287,16 +295,16 @@ document.addEventListener('DOMContentLoaded', () => {
             let barClasses = 'chart-bar';
             if (isViewingDay) barClasses += ' active';
             bar.className = barClasses;
-            bar.style.height = `${Math.max(heightPercent, 2)}%`;
-
-            // +/- inside bar text has been removed
-            const diffFromMaint = item.cals - state.maintenance;
-            const sign = diffFromMaint > 0 ? '+' : '';
-            const diffText = diffFromMaint === 0 ? '0' : `${sign}${diffFromMaint}`;
+            // If no entry leave bar invisible (don't show 2% stub)
+            bar.style.height = item.hasEntry ? `${Math.max(heightPercent, 2)}%` : '0%';
 
             const diffEl = document.createElement('div');
             diffEl.className = 'bar-diff-text';
-            diffEl.textContent = diffText;
+            if (item.hasEntry) {
+                const diffFromMaint = item.cals - state.maintenance;
+                const sign = diffFromMaint > 0 ? '+' : '';
+                diffEl.textContent = diffFromMaint === 0 ? '0' : `${sign}${diffFromMaint}`;
+            }
 
             barWrapper.appendChild(diffEl);
             barWrapper.appendChild(bar);

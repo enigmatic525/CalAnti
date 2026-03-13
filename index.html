@@ -73,22 +73,23 @@
 
                     <!-- Metrics Row -->
                     <section class="metrics-row"
-                        style="display: flex; justify-content: center; gap: 48px; position: relative; margin-bottom: 24px; top: 4px;">
-                        <div class="metric-item" id="metric-maint" role="button" tabindex="0" title="Edit Maintenance"
-                            style="text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center;">
-                            <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 2px; font-weight: var(--font-weight-regular);">Maintenance</div>
+                        style="display: flex; justify-content: center; gap: 48px; padding: 12px 0; margin-top: -8px;">
+                        <div class="metric-item" id="metric-maint" role="button" tabindex="0" title="Edit TDEE"
+                            style="text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; position: relative;">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary); position: absolute; top: 0; right: -14px;">
+                                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                            </svg>
+                            <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 2px; font-weight: var(--font-weight-regular);">TDEE</div>
                             <div style="font-size: 18px; font-weight: var(--font-weight-medium); color: var(--text-primary); line-height: 1;">
                                 <span id="metric-maint-val">2500</span>
                             </div>
                         </div>
                         <div class="metric-item" id="metric-goal" role="button" tabindex="0" title="Edit Goal"
-                            style="text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center;">
-                            <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 2px; font-weight: var(--font-weight-regular); display: flex; align-items: center; gap: 4px;">
-                                Goal
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);">
-                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                                </svg>
-                            </div>
+                            style="text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; position: relative;">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary); position: absolute; top: 0; right: -14px;">
+                                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                            </svg>
+                            <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 2px; font-weight: var(--font-weight-regular);">Goal</div>
                             <div style="font-size: 18px; font-weight: var(--font-weight-medium); color: var(--text-primary); line-height: 1;">
                                 <span id="metric-goal-val">2000</span>
                             </div>
@@ -243,14 +244,9 @@
     <!-- Tutorial Overlay -->
     <div class="tutorial-overlay" id="tutorial-overlay">
         <div class="tutorial-content">
-            <h2>Welcome to My Tracker</h2>
-            <p style="color: var(--text-secondary); font-size: 14px; margin-top: 8px;">A minimalistic tracker.</p>
-            <ul style="text-align: left; margin: 16px 0; padding-left: 20px; font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
-                <li><strong>Calories:</strong> Defaults each day to maintenance. Edit directly or quick add/sub.</li>
-                <li><strong>Weight:</strong> Check your trends over time.</li>
-                <li><strong>Lifts:</strong> Organize by PPL and track estimated 1RM.</li>
-            </ul>
-            <button class="btn btn-primary" id="btn-tutorial-close" style="width: 100%; margin-top: 12px;">Get Started</button>
+            <h2 style="font-weight: var(--font-weight-regular);">Welcome to MyTracker.lat</h2>
+            <p style="color: var(--text-secondary); font-size: 13px; font-weight: var(--font-weight-regular); margin-top: 10px; line-height: 1.6;">A minimalistic tracker for calories, body weight, and lifts.</p>
+            <button class="btn btn-primary" id="btn-tutorial-close" style="width: 100%; margin-top: 20px;">Get Started</button>
         </div>
     </div>
     <!-- Modal for Edit Calories -->
