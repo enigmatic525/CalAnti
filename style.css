@@ -189,6 +189,7 @@ body {
     align-items: center;
     justify-content: flex-end;
     flex: 1;
+    position: relative;
 }
 
 .chart-bar {
@@ -203,8 +204,12 @@ body {
     color: var(--text-secondary);
     font-size: 10px;
     font-weight: var(--font-weight-medium);
-    margin-bottom: 6px;
     text-align: center;
+    position: absolute;
+    top: -18px;
+    left: 0;
+    right: 0;
+    pointer-events: none;
 }
 
 .chart-bar.active {

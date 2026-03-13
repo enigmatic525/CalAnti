@@ -295,18 +295,18 @@ document.addEventListener('DOMContentLoaded', () => {
             let barClasses = 'chart-bar';
             if (isViewingDay) barClasses += ' active';
             bar.className = barClasses;
-            // If no entry leave bar invisible (don't show 2% stub)
             bar.style.height = item.hasEntry ? `${Math.max(heightPercent, 2)}%` : '0%';
+            bar.style.position = 'relative';
 
-            const diffEl = document.createElement('div');
-            diffEl.className = 'bar-diff-text';
             if (item.hasEntry) {
+                const diffEl = document.createElement('div');
+                diffEl.className = 'bar-diff-text';
                 const diffFromMaint = item.cals - state.maintenance;
                 const sign = diffFromMaint > 0 ? '+' : '';
                 diffEl.textContent = diffFromMaint === 0 ? '0' : `${sign}${diffFromMaint}`;
+                bar.appendChild(diffEl);
             }
 
-            barWrapper.appendChild(diffEl);
             barWrapper.appendChild(bar);
             col.appendChild(barWrapper);
             chartBarsEl.appendChild(col);
