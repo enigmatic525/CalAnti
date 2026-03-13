@@ -708,8 +708,8 @@ body {
     border-top: 1px solid var(--border-color);
     display: flex;
     justify-content: space-around;
-    padding: 27px 16px;
-    padding-bottom: max(27px, env(safe-area-inset-bottom));
+    padding: 18px 16px;
+    padding-bottom: max(18px, env(safe-area-inset-bottom));
     z-index: 100;
 }
 
