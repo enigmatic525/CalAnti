@@ -686,9 +686,12 @@ body {
 }
 
 #tab-weight.active {
-    flex: 1;
+    flex-direction: column;
     gap: 0;
-    min-height: 0;
+}
+
+#tab-weight #weight-chart-section {
+    height: 240px;
 }
 
 @keyframes fadeIn {
