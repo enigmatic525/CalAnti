@@ -699,21 +699,20 @@ body {
     border: none;
     color: var(--text-secondary);
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 4px;
-    font-size: 11px;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: var(--font-weight-medium);
     font-family: var(--font-main);
     cursor: pointer;
+    padding: 8px 16px;
     transition: var(--transition);
+    border-radius: var(--radius-sm);
 }
 
 .nav-tab.active {
     color: var(--text-primary);
-}
-
-.nav-tab.active svg {
-    stroke: var(--accent-primary);
+    background: var(--surface-hover);
 }
 
 /* Weight and Lifts Helpers */
@@ -812,4 +811,47 @@ body {
 
 .btn-delete-set:hover {
     color: var(--danger);
+}
+
+/* Tutorial Overlay */
+.tutorial-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 24px;
+}
+
+.tutorial-overlay.hidden {
+    display: none;
+}
+
+.tutorial-content {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 28px 24px;
+    max-width: 360px;
+    width: 100%;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+}
+
+.tutorial-content h2 {
+    font-size: 20px;
+    font-weight: var(--font-weight-bold);
+}
+
+/* App container bottom padding for fixed nav */
+.app-container {
+    padding-bottom: 80px;
+    overflow-y: auto;
+    max-height: 100vh;
+}
+
+.tabs-container {
+    display: flex;
+    flex-direction: column;
 }

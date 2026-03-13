@@ -90,6 +90,22 @@ document.addEventListener('DOMContentLoaded', () => {
         updateDateElements();
         updateUI();
         setupEventListeners();
+
+        // Tutorial overlay
+        const tutorialOverlay = document.getElementById('tutorial-overlay');
+        const btnTutorialClose = document.getElementById('btn-tutorial-close');
+        if (tutorialOverlay && btnTutorialClose) {
+            const seen = localStorage.getItem('trackerTutorialSeen');
+            if (!seen) {
+                tutorialOverlay.classList.remove('hidden');
+            } else {
+                tutorialOverlay.classList.add('hidden');
+            }
+            btnTutorialClose.addEventListener('click', () => {
+                tutorialOverlay.classList.add('hidden');
+                localStorage.setItem('trackerTutorialSeen', '1');
+            });
+        }
     }
 
     function getDateString(d) {
