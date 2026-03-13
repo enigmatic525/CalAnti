@@ -98,14 +98,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const btnTutorialClose = document.getElementById('btn-tutorial-close');
         if (tutorialOverlay && btnTutorialClose) {
             const seen = localStorage.getItem('trackerTutorialSeen');
-            if (!seen) {
-                tutorialOverlay.classList.remove('hidden');
+            if (seen) {
+                tutorialOverlay.style.display = 'none';
+                tutorialOverlay.classList.add('hidden');
             } else {
-                tutorialOverlay.classList.add('hidden');
+                tutorialOverlay.style.display = 'flex';
+                tutorialOverlay.classList.remove('hidden');
             }
-            btnTutorialClose.addEventListener('click', () => {
+            
+            function closeTutorial() {
+                tutorialOverlay.style.display = 'none';
                 tutorialOverlay.classList.add('hidden');
-                localStorage.setItem('trackerTutorialSeen', '1');
+                try {
+                    localStorage.setItem('trackerTutorialSeen', '1');
+                } catch(e) {}
+            }
+            
+            btnTutorialClose.addEventListener('click', closeTutorial);
+            
+            // Also close if clicking outside the modal content
+            tutorialOverlay.addEventListener('click', e => {
+                if (e.target === tutorialOverlay) {
+                    closeTutorial();
+                }
             });
         }
     }
