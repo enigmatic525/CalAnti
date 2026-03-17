@@ -263,9 +263,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Easter Egg: Overload Trigger
-        if (cals > 10000 && !document.querySelector('.overload-window')) {
+        if (cals > 10000) {
             triggerOverload();
-        } else if (cals <= 10000) {
+        } else {
+            if (window.overloadInterval) {
+                clearInterval(window.overloadInterval);
+                window.overloadInterval = null;
+            }
             document.querySelectorAll('.overload-window').forEach(el => el.remove());
         }
 
@@ -273,33 +277,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function triggerOverload() {
-        for (let i = 0; i < 40; i++) {
-            setTimeout(() => {
-                const cals = state.history[viewingDateString] || 0;
-                if (cals <= 10000) return;
-                
-                const win = document.createElement('div');
-                win.className = 'overload-window';
-                
-                // Randomly position on screen
-                win.style.left = Math.random() * 70 + '%';
-                win.style.top = Math.random() * 80 + '%';
-                
-                win.innerHTML = `
-                    <div class="overload-header">
-                        <span>ERROR</span>
-                        <span class="overload-close" onclick="this.parentElement.parentElement.remove()">X</span>
-                    </div>
-                    <div class="overload-body">
-                        <div style="font-size:32px; margin-bottom: 8px;">⚠️</div>
-                        <p>CALORIE OVERLOAD DETECTED</p>
-                        <p style="font-weight: normal; font-size: 11px; margin-top: 8px; color: #333;">System capacity exceeded. Restrict intake immediately.</p>
-                        <button class="overload-btn" onclick="this.parentElement.parentElement.remove()">OK</button>
-                    </div>
-                `;
-                document.body.appendChild(win);
-            }, i * 150); // delay each window spawn
-        }
+        if (window.overloadInterval) return;
+        
+        window.overloadInterval = setInterval(() => {
+            const cals = state.history[viewingDateString] || 0;
+            if (cals <= 10000) {
+                clearInterval(window.overloadInterval);
+                window.overloadInterval = null;
+                return;
+            }
+            
+            // Limit to max 80 concurrently to avoid a freezing browser crash
+            if (document.querySelectorAll('.overload-window').length > 80) return;
+            
+            const win = document.createElement('div');
+            win.className = 'overload-window';
+            
+            // Randomly position on screen
+            win.style.left = (Math.random() * 70) + '%';
+            win.style.top = (Math.random() * 80) + '%';
+            
+            win.innerHTML = `
+                <div class="overload-header">
+                    <span><img src="https://win98icons.alexmeub.com/icons/png/msg_error-0.png" style="width: 14px; vertical-align: middle; margin-right: 4px;"> Error</span>
+                    <span class="overload-close" onclick="this.parentElement.parentElement.remove()">X</span>
+                </div>
+                <div class="overload-body">
+                    <div style="font-size:32px; margin-bottom: 8px;">⚠️</div>
+                    <p style="color: #fff; font-size: 14px; font-weight: bold; margin: 0; text-shadow: none;">CALORIE OVERLOAD DETECTED</p>
+                    <p style="font-weight: normal; font-size: 11px; margin-top: 8px; color: #fff;">System capacity exceeded. Restrict intake immediately.</p>
+                    <button class="overload-btn" onclick="this.parentElement.parentElement.remove()">OK</button>
+                </div>
+            `;
+            document.body.appendChild(win);
+        }, 120); // spawn rapidly
     }
 
     function renderChart() {
