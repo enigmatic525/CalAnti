@@ -261,8 +261,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 progressBarFill.style.boxShadow = '0 0 10px rgba(139, 92, 246, 0.3)';
             }
         }
+        
+        // Easter Egg: Overload Trigger
+        if (cals > 10000 && !document.querySelector('.overload-window')) {
+            triggerOverload();
+        } else if (cals <= 10000) {
+            document.querySelectorAll('.overload-window').forEach(el => el.remove());
+        }
 
         renderChart();
+    }
+    
+    function triggerOverload() {
+        for (let i = 0; i < 40; i++) {
+            setTimeout(() => {
+                const cals = state.history[viewingDateString] || 0;
+                if (cals <= 10000) return;
+                
+                const win = document.createElement('div');
+                win.className = 'overload-window';
+                
+                // Randomly position on screen
+                win.style.left = Math.random() * 70 + '%';
+                win.style.top = Math.random() * 80 + '%';
+                
+                win.innerHTML = `
+                    <div class="overload-header">
+                        <span>ERROR</span>
+                        <span class="overload-close" onclick="this.parentElement.parentElement.remove()">X</span>
+                    </div>
+                    <div class="overload-body">
+                        <div style="font-size:32px; margin-bottom: 8px;">⚠️</div>
+                        <p>CALORIE OVERLOAD DETECTED</p>
+                        <p style="font-weight: normal; font-size: 11px; margin-top: 8px; color: #333;">System capacity exceeded. Restrict intake immediately.</p>
+                        <button class="overload-btn" onclick="this.parentElement.parentElement.remove()">OK</button>
+                    </div>
+                `;
+                document.body.appendChild(win);
+            }, i * 150); // delay each window spawn
+        }
     }
 
     function renderChart() {

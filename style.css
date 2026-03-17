@@ -953,3 +953,83 @@ body {
     flex: 1;
     min-height: 0;
 }
+
+/* Easter Egg Override Window */
+.overload-window {
+    position: fixed;
+    width: 280px;
+    background: #c0c0c0;
+    border: 2px solid #fff;
+    border-right-color: #888;
+    border-bottom-color: #888;
+    box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+    z-index: 9999;
+    color: #000;
+    font-family: 'Courier New', Courier, monospace;
+    animation: shakeAlert 0.1s infinite alternate;
+}
+
+.overload-header {
+    background: #000080;
+    color: #fff;
+    padding: 4px 8px;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    align-items: center;
+}
+
+.overload-close {
+    background: #c0c0c0;
+    color: #000;
+    padding: 0px 4px;
+    cursor: pointer;
+    font-size: 12px;
+    border: 1px solid #fff;
+    border-right-color: #888;
+    border-bottom-color: #888;
+}
+
+.overload-close:active {
+    border: 1px solid #888;
+    border-right-color: #fff;
+    border-bottom-color: #fff;
+}
+
+.overload-body {
+    padding: 16px;
+    text-align: center;
+    background: #c0c0c0;
+}
+
+.overload-body p {
+    margin: 0;
+    font-weight: bold;
+    color: #ff0000;
+    text-shadow: 1px 1px #fff;
+    font-size: 14px;
+}
+
+.overload-btn {
+    margin-top: 16px;
+    padding: 4px 24px;
+    background: #c0c0c0;
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+    border: 2px solid #fff;
+    border-right-color: #888;
+    border-bottom-color: #888;
+}
+
+.overload-btn:active {
+    border: 2px solid #888;
+    border-right-color: #fff;
+    border-bottom-color: #fff;
+}
+
+@keyframes shakeAlert {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    100% { transform: translate(-1px, -2px) rotate(-1deg); }
+}
