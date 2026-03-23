@@ -134,26 +134,26 @@
 
             <!-- WEIGHT TAB -->
             <div id="tab-weight" class="tab-pane">
-                <!-- Chart Section (mirrors calorie tab) -->
+                <!-- Chart Section -->
                 <section class="chart-section" id="weight-chart-section" aria-label="Weight Progress Chart">
-                    <div id="weight-trend-label"
-                        style="position: absolute; top: 12px; left: 16px; font-size: 13px; color: var(--text-secondary); font-weight: var(--font-weight-medium); z-index: 5;">
-                        Current: --</div>
                     <div class="chart-toggles" id="weight-chart-toggles"
                         style="position: absolute; top: 8px; right: 12px; z-index: 5;">
                         <button class="chart-toggle" data-range="week">W</button>
                         <button class="chart-toggle active" data-range="month">M</button>
                         <button class="chart-toggle" data-range="year">Y</button>
                     </div>
-                    <div class="chart-container" style="margin-top: 24px;">
-                        <div class="chart-plot-area" style="position: relative; flex: 1;">
-                            <svg id="weight-chart-svg" width="100%" height="100%" preserveAspectRatio="none" style="display: block; position: absolute; inset: 0;">
-                                <path id="weight-chart-line" d="" fill="none" stroke="var(--accent-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
-                            </svg>
-                            <div id="weight-chart-empty" style="display: none; position: absolute; inset: 0; align-items: center; justify-content: center; font-size: 13px; color: var(--text-secondary);">Add multiple entries to see trends</div>
-                        </div>
-                        <div class="chart-labels-row" id="weight-x-axis">
-                            <!-- X-axis labels inserted by JS -->
+                    <div class="chart-container" style="flex-direction: row; gap: 4px; margin-top: 4px;">
+                        <!-- Y-axis -->
+                        <div id="weight-y-axis" style="display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; padding-right: 4px; min-width: 36px; padding-bottom: 20px;"></div>
+                        <!-- SVG + x-axis -->
+                        <div style="flex: 1; display: flex; flex-direction: column; min-width: 0;">
+                            <div class="chart-plot-area" style="position: relative; flex: 1;">
+                                <svg id="weight-chart-svg" width="100%" height="100%" preserveAspectRatio="none" style="display: block; position: absolute; inset: 0;">
+                                    <path id="weight-chart-line" d="" fill="none" stroke="var(--accent-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+                                </svg>
+                                <div id="weight-chart-empty" style="display: none; position: absolute; inset: 0; align-items: center; justify-content: center; font-size: 13px; color: var(--text-secondary);">Add multiple entries to see trends</div>
+                            </div>
+                            <div class="chart-labels-row" id="weight-x-axis"></div>
                         </div>
                     </div>
                 </section>
@@ -162,13 +162,13 @@
                     <!-- Metrics Row -->
                     <section class="metrics-row"
                         style="display: flex; justify-content: center; gap: 48px; padding: 12px 0; margin-top: -8px;">
-                        <div class="metric-item" style="text-align: center; display: flex; flex-direction: column; align-items: center; position: relative;">
+                        <div class="metric-item" style="text-align: center; display: flex; flex-direction: column; align-items: center;">
                             <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 2px; font-weight: var(--font-weight-regular);">Current</div>
                             <div style="font-size: 18px; font-weight: var(--font-weight-medium); color: var(--text-primary); line-height: 1;">
                                 <span id="weight-metric-current">--</span>
                             </div>
                         </div>
-                        <div class="metric-item" style="text-align: center; display: flex; flex-direction: column; align-items: center; position: relative;">
+                        <div class="metric-item" style="text-align: center; display: flex; flex-direction: column; align-items: center;">
                             <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 2px; font-weight: var(--font-weight-regular);">This Week</div>
                             <div style="font-size: 18px; font-weight: var(--font-weight-medium); color: var(--text-primary); line-height: 1;">
                                 <span id="weight-metric-week">--</span>
@@ -178,81 +178,28 @@
 
                     <!-- Main Tracker Section -->
                     <section class="main-tracker-section">
-                        <button class="btn btn-icon-text outer-btn" id="btn-weight-minus-1"
-                            aria-label="Subtract 1">-1</button>
-                        <button class="btn btn-icon-text inner-btn" id="btn-weight-minus"
-                            aria-label="Subtract 0.1">-.1</button>
+                        <button class="btn btn-icon-text outer-btn" id="btn-weight-minus-1" aria-label="Subtract 1">-1</button>
+                        <button class="btn btn-icon-text inner-btn" id="btn-weight-minus" aria-label="Subtract 0.1">-.1</button>
 
-                        <div class="tracker-center" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 140px;">
+                        <div class="tracker-center" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 165px;">
                             <div style="display: flex; align-items: baseline; justify-content: center;">
                                 <input type="number" id="weight-input" step="0.1" value="150.0"
-                                    style="font-size: 48px; font-weight: var(--font-weight-medium); line-height: 1; background: transparent; color: var(--text-primary); border: none; text-align: right; width: 106px; outline: none; appearance: textfield; -moz-appearance: textfield; padding: 0;">
+                                    style="font-size: 48px; font-weight: var(--font-weight-medium); line-height: 1; background: transparent; color: var(--text-primary); border: none; text-align: right; width: 130px; outline: none; appearance: textfield; -moz-appearance: textfield; padding: 0;">
                                 <span id="weight-unit-label" style="font-size: 16px; color: var(--text-secondary); margin-left: 4px; padding-bottom: 4px;">lbs</span>
                             </div>
                             <button class="btn btn-primary" id="btn-save-weight" style="width: 100%; margin-top: 8px; font-size: 13px; padding: 8px 12px;">Save</button>
                         </div>
 
-                        <button class="btn btn-icon-text inner-btn" id="btn-weight-plus"
-                            aria-label="Add 0.1">+.1</button>
-                        <button class="btn btn-icon-text outer-btn" id="btn-weight-plus-1"
-                            aria-label="Add 1">+1</button>
+                        <button class="btn btn-icon-text inner-btn" id="btn-weight-plus" aria-label="Add 0.1">+.1</button>
+                        <button class="btn btn-icon-text outer-btn" id="btn-weight-plus-1" aria-label="Add 1">+1</button>
                     </section>
                 </div>
             </div>
 
             <!-- LIFTS TAB -->
             <div id="tab-lifts" class="tab-pane">
-                <div id="lifts-main-view">
-                    <div class="ppl-toggles" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 24px;">
-                        <button class="btn btn-secondary active ppl-toggle" data-ppl="push">Push</button>
-                        <button class="btn btn-secondary ppl-toggle" data-ppl="pull">Pull</button>
-                        <button class="btn btn-secondary ppl-toggle" data-ppl="legs">Legs</button>
-                    </div>
-
-                    <div id="lifts-list" style="display: flex; flex-direction: column; gap: 12px;">
-                        <!-- Exercises populated by JS -->
-                    </div>
-                    <button class="btn-text" id="btn-add-lift" style="align-self: flex-start; margin-top: 16px;">+ Add Exercise</button>
-                </div>
-
-                <div id="lift-detail-view" style="display: none; flex-direction: column; gap: 24px;">
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; align-items: center;">
-                            <button class="btn-secondary" id="btn-back-lifts" style="padding: 8px; display: flex; align-items: center; justify-content: center;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19L5 12L12 5"/></svg>
-                            </button>
-                            <h2 id="lift-detail-title" style="margin-left: 12px; font-size: 20px; font-weight: var(--font-weight-medium);">Exercise</h2>
-                        </div>
-                        <button class="btn-text" id="btn-delete-lift" style="color: var(--danger);">Delete</button>
-                    </div>
-                    
-                    <section class="chart-section" aria-label="Lift Progress Chart">
-                        <div style="position: absolute; top: 12px; left: 16px; font-size: 13px; color: var(--text-secondary); font-weight: var(--font-weight-medium);">Estimated 1RM Trend</div>
-                        <div class="chart-container" style="margin-top: 24px;">
-                            <svg id="lift-chart-svg" width="100%" height="100%" preserveAspectRatio="none">
-                               <path id="lift-chart-line" d="" fill="none" stroke="var(--accent-primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </div>
-                    </section>
-
-                    <section class="main-tracker-section" style="flex-direction: column; gap: 16px;">
-                        <div style="display: flex; gap: 16px; width: 100%;">
-                            <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
-                                <label style="font-size: 13px; color: var(--text-secondary);">Weight (lbs)</label>
-                                <input type="number" id="lift-weight-input" class="modal-input" placeholder="e.g. 135" style="text-align: center;">
-                            </div>
-                            <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
-                                <label style="font-size: 13px; color: var(--text-secondary);">Reps</label>
-                                <input type="number" id="lift-reps-input" class="modal-input" placeholder="e.g. 8" style="text-align: center;">
-                            </div>
-                        </div>
-                        <button class="btn btn-primary" id="btn-save-lift-set" style="width: 100%;">Save Set</button>
-                    </section>
-
-                    <div style="font-size: 15px; font-weight: var(--font-weight-medium); margin-bottom: 8px;">Today's Sets</div>
-                    <div id="lift-history-list" style="display: flex; flex-direction: column; gap: 8px;">
-                        <!-- Sets populated by JS -->
-                    </div>
+                <div id="lifts-all-groups" style="display: flex; flex-direction: column; gap: 8px;">
+                    <!-- Rendered by JS -->
                 </div>
             </div>
         </div>
@@ -380,6 +327,19 @@
                 <button class="btn btn-secondary" id="btn-cancel-preset">Cancel</button>
                 <button class="btn btn-primary" id="btn-save-preset">Save</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal for Lift Weight Entry -->
+    <div class="modal-overlay" id="lift-weight-modal">
+        <div class="modal-content">
+            <h3 id="lift-weight-modal-title">Log Weight</h3>
+            <input type="number" id="lift-weight-modal-input" class="modal-input" placeholder="e.g. 135" step="2.5">
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="btn-cancel-lift-weight">Cancel</button>
+                <button class="btn btn-primary" id="btn-save-lift-weight">Save</button>
+            </div>
+            <button id="btn-delete-lift-inline" style="background: none; border: none; color: var(--danger); font-family: var(--font-main); font-size: 13px; cursor: pointer; width: 100%; text-align: center; margin-top: 4px; padding: 4px;">Delete Exercise</button>
         </div>
     </div>
 

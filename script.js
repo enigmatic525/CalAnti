@@ -350,16 +350,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (state.unit === 'metric') {
                 const kgs = (weeklyDiff / 7700).toFixed(1);
                 const kgSign = weeklyDiff > 0 ? '+' : '';
-                weeklyDiffLabelEl.textContent = `This Week: ${calSign}${weeklyDiff} cal, ${kgSign}${kgs} kg`;
+                weeklyDiffLabelEl.textContent = `This Week: ${calSign}${weeklyDiff} Cal, ${kgSign}${kgs} kg`;
             } else {
                 const lbs = (weeklyDiff / 3500).toFixed(1);
                 const lbSign = weeklyDiff > 0 ? '+' : '';
-                weeklyDiffLabelEl.textContent = `This Week: ${calSign}${weeklyDiff} cal, ${lbSign}${lbs} lbs`;
+                weeklyDiffLabelEl.textContent = `This Week: ${calSign}${weeklyDiff} Cal, ${lbSign}${lbs} lbs`;
             }
         }
 
-        // Give 20% headroom
-        const chartMax = maxCals * 1.2;
+        // Give 50% headroom so bars/diff-text never overlap the label
+        const chartMax = maxCals * 1.5;
 
         // Goal line percentage
         const goalPercent = Math.min((state.goal / chartMax) * 100, 100);
@@ -798,8 +798,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => btnSaveWeight.textContent = orig, 1500);
             }
         });
-
-        function renderWeightTab() {
+           function renderWeightTab() {
             // Update input to viewing/today's logged weight
             const wKeys = Object.keys(state.weightHistory).sort();
             let lastW = wKeys.length > 0 ? state.weightHistory[wKeys[wKeys.length - 1]] : 150.0;
@@ -810,7 +809,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const svgEl = document.getElementById('weight-chart-svg');
             const emptyEl = document.getElementById('weight-chart-empty');
             const xAxisEl = document.getElementById('weight-x-axis');
-            const trendLabelEl = document.getElementById('weight-trend-label');
+            const yAxisEl = document.getElementById('weight-y-axis');
             const metricCurrentEl = document.getElementById('weight-metric-current');
             const metricWeekEl = document.getElementById('weight-metric-week');
             if (!svgEl) return;
@@ -820,278 +819,219 @@ document.addEventListener('DOMContentLoaded', () => {
             const days = daysMap[currentWeightRange] || 30;
             const unitName = state.unit === 'metric' ? 'kg' : 'lbs';
 
-            // Collect data points within range
-            let dataPoints = [];
-            let viewD = new Date(viewingDateString + 'T12:00:00');
+            // Build full date range — every slot whether data exists or not
+            const allSlots = [];
+            const viewD = new Date(viewingDateString + 'T12:00:00');
             for (let i = days - 1; i >= 0; i--) {
-                let tempD = new Date(viewD.getTime() - i * 24 * 60 * 60 * 1000);
-                let dStr = getDateString(tempD);
-                let w = state.weightHistory[dStr];
-                if (w) dataPoints.push({ slotIndex: days - 1 - i, y: w, date: tempD, dateStr: dStr });
+                const tempD = new Date(viewD.getTime() - i * 24 * 60 * 60 * 1000);
+                const dStr = getDateString(tempD);
+                allSlots.push({ slotIndex: days - 1 - i, date: tempD, dateStr: dStr, weight: state.weightHistory[dStr] || null });
             }
+            const dataPoints = allSlots.filter(s => s.weight !== null);
 
             // --- Metrics row
             const allWKeys = Object.keys(state.weightHistory).sort();
             const latestW = allWKeys.length > 0 ? state.weightHistory[allWKeys[allWKeys.length - 1]] : null;
             if (metricCurrentEl) metricCurrentEl.textContent = latestW ? `${latestW.toFixed(1)} ${unitName}` : '--';
-            if (trendLabelEl) trendLabelEl.textContent = latestW ? `Current: ${latestW.toFixed(1)} ${unitName}` : 'Current: --';
-
-            // Weekly change: compare last 7 days
             if (metricWeekEl) {
-                const todayD = new Date(currentDateString + 'T12:00:00');
-                const sevenAgoStr = getDateString(new Date(todayD.getTime() - 7 * 24 * 60 * 60 * 1000));
+                const sevenAgoStr = getDateString(new Date(new Date(currentDateString + 'T12:00:00').getTime() - 7 * 24 * 60 * 60 * 1000));
                 const recentKeys = allWKeys.filter(k => k > sevenAgoStr);
                 const olderKeys = allWKeys.filter(k => k <= sevenAgoStr);
                 if (recentKeys.length > 0 && olderKeys.length > 0) {
-                    const recent = state.weightHistory[recentKeys[recentKeys.length - 1]];
-                    const older = state.weightHistory[olderKeys[olderKeys.length - 1]];
-                    const diff = recent - older;
-                    const sign = diff > 0 ? '+' : '';
-                    metricWeekEl.textContent = `${sign}${diff.toFixed(1)} ${unitName}`;
+                    const diff = state.weightHistory[recentKeys[recentKeys.length - 1]] - state.weightHistory[olderKeys[olderKeys.length - 1]];
+                    metricWeekEl.textContent = `${diff > 0 ? '+' : ''}${diff.toFixed(1)} ${unitName}`;
                 } else {
                     metricWeekEl.textContent = '--';
                 }
             }
 
-            // Clear x-axis
             if (xAxisEl) xAxisEl.innerHTML = '';
+            if (yAxisEl) yAxisEl.innerHTML = '';
 
             if (dataPoints.length < 2) {
                 pathLine.setAttribute('d', '');
                 if (emptyEl) emptyEl.style.display = 'flex';
                 return;
             }
-
             if (emptyEl) emptyEl.style.display = 'none';
 
             // Y range with padding
-            let maxW = Math.max(...dataPoints.map(p => p.y));
-            let minW = Math.min(...dataPoints.map(p => p.y));
-            const yPad = Math.max((maxW - minW) * 0.15, 0.5);
-            maxW += yPad;
-            minW -= yPad;
+            let maxW = Math.max(...dataPoints.map(p => p.weight));
+            let minW = Math.min(...dataPoints.map(p => p.weight));
+            const yPad = Math.max((maxW - minW) * 0.2, 1);
+            maxW += yPad; minW -= yPad;
             const yRange = maxW - minW;
 
-            // X range
-            const minSlot = dataPoints[0].slotIndex;
-            const maxSlot = dataPoints[dataPoints.length - 1].slotIndex;
-            const xRange = Math.max(1, maxSlot - minSlot);
-
-            // --- X-axis labels: evenly spaced flex items (like calorie chart)
-            if (xAxisEl) {
-                const sortedPoints = [...dataPoints].sort((a, b) => a.slotIndex - b.slotIndex);
-                const labelCount = Math.min(7, sortedPoints.length);
-                const picked = [];
-                for (let i = 0; i < labelCount; i++) {
-                    const idx = Math.round((i / Math.max(1, labelCount - 1)) * (sortedPoints.length - 1));
-                    picked.push(sortedPoints[idx]);
-                }
-                // Remove dupes
-                const seen = new Set();
-                const unique = picked.filter(p => { if (seen.has(p.slotIndex)) return false; seen.add(p.slotIndex); return true; });
-
-                unique.forEach(pt => {
+            // Y-axis: 4 ticks
+            if (yAxisEl) {
+                for (let t = 0; t < 4; t++) {
+                    const val = maxW - (t / 3) * yRange;
                     const lbl = document.createElement('div');
-                    lbl.className = 'chart-label';
-                    const fmt = currentWeightRange === 'year'
-                        ? pt.date.toLocaleDateString('en-US', { month: 'short' })
-                        : pt.date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
-                    lbl.textContent = fmt;
-                    xAxisEl.appendChild(lbl);
-                });
+                    lbl.style.cssText = 'font-size: 10px; color: var(--text-secondary); line-height: 1; font-variant-numeric: tabular-nums;';
+                    lbl.textContent = val.toFixed(1);
+                    yAxisEl.appendChild(lbl);
+                }
             }
 
-            // --- SVG path (viewBox 0 0 100 100, percentage coords)
+            // X-axis: evenly spaced labels from the full range
+            const xRange = Math.max(1, days - 1);
+            if (xAxisEl) {
+                const labelCount = currentWeightRange === 'week' ? 7 : currentWeightRange === 'year' ? 12 : 7;
+                for (let i = 0; i < labelCount; i++) {
+                    const slotIdx = Math.round((i / Math.max(1, labelCount - 1)) * xRange);
+                    const slot = allSlots[Math.min(slotIdx, allSlots.length - 1)];
+                    const lbl = document.createElement('div');
+                    lbl.className = 'chart-label';
+                    lbl.textContent = currentWeightRange === 'year'
+                        ? slot.date.toLocaleDateString('en-US', { month: 'short' })
+                        : slot.date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+                    xAxisEl.appendChild(lbl);
+                }
+            }
+
+            // SVG smooth bezier path using full-range x positions
             svgEl.setAttribute('viewBox', '0 0 100 100');
-            let dPath = '';
-            const pathPoints = [...dataPoints].sort((a, b) => a.slotIndex - b.slotIndex);
-            pathPoints.forEach((pt, index) => {
-                const px = ((pt.slotIndex - minSlot) / xRange) * 100;
-                const py = 100 - ((pt.y - minW) / yRange) * 100;
-                dPath += (index === 0 ? 'M' : 'L') + `${px.toFixed(2)},${py.toFixed(2)} `;
-            });
-            pathLine.setAttribute('d', dPath.trim());
+            const svgPts = dataPoints.map(pt => ({
+                x: (pt.slotIndex / xRange) * 100,
+                y: 100 - ((pt.weight - minW) / yRange) * 100
+            }));
+
+            function smoothPath(pts) {
+                if (pts.length < 2) return '';
+                const t = 0.35;
+                let d = `M${pts[0].x.toFixed(2)},${pts[0].y.toFixed(2)}`;
+                for (let i = 1; i < pts.length; i++) {
+                    const p0 = pts[Math.max(0, i - 2)];
+                    const p1 = pts[i - 1];
+                    const p2 = pts[i];
+                    const p3 = pts[Math.min(pts.length - 1, i + 1)];
+                    const cp1x = p1.x + (p2.x - p0.x) * t;
+                    const cp1y = p1.y + (p2.y - p0.y) * t;
+                    const cp2x = p2.x - (p3.x - p1.x) * t;
+                    const cp2y = p2.y - (p3.y - p1.y) * t;
+                    d += ` C${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`;
+                }
+                return d;
+            }
+            pathLine.setAttribute('d', smoothPath(svgPts));
         }
 
 
         // ------ LIFTS TAB LOGIC
-        const pplToggles = document.querySelectorAll('.ppl-toggle');
-        const liftsList = document.getElementById('lifts-list');
-        const liftsMainView = document.getElementById('lifts-main-view');
-        const liftDetailView = document.getElementById('lift-detail-view');
-        const btnBackLifts = document.getElementById('btn-back-lifts');
-        const liftDetailTitle = document.getElementById('lift-detail-title');
+        if (!state.liftWeights) state.liftWeights = {};
 
-        let currentPPL = 'push';
-        let currentLiftId = null;
+        const liftsAllGroups = document.getElementById('lifts-all-groups');
+        const liftWeightModal = document.getElementById('lift-weight-modal');
+        const liftWeightModalTitle = document.getElementById('lift-weight-modal-title');
+        const liftWeightModalInput = document.getElementById('lift-weight-modal-input');
+        const btnSaveLiftWeight = document.getElementById('btn-save-lift-weight');
+        const btnCancelLiftWeight = document.getElementById('btn-cancel-lift-weight');
+        const btnDeleteLiftInline = document.getElementById('btn-delete-lift-inline');
 
-        pplToggles.forEach(t => {
-            t.addEventListener('click', () => {
-                pplToggles.forEach(btn => btn.classList.remove('active', 'btn-primary'));
-                t.classList.add('active', 'btn-primary');
-                currentPPL = t.getAttribute('data-ppl');
-                renderLiftsTab();
-            });
-        });
-
-        btnBackLifts.addEventListener('click', () => {
-            liftDetailView.style.display = 'none';
-            liftsMainView.style.display = 'block';
-            currentLiftId = null;
-        });
-
-        function renderLiftsTab() {
-            liftsList.innerHTML = '';
-            const filteredLifts = state.lifts.filter(l => l.group === currentPPL);
-            filteredLifts.forEach(lift => {
-                const el = document.createElement('div');
-                el.className = 'lift-item';
-
-                let last1RM = '--';
-                if (state.liftSets[lift.id] && state.liftSets[lift.id].length > 0) {
-                    last1RM = state.liftSets[lift.id][state.liftSets[lift.id].length - 1].est1RM + ' lbs';
-                }
-                el.innerHTML = `
-                    <div>
-                        <div class="lift-name">${lift.name}</div>
-                        <div class="lift-meta">Est. 1RM: ${last1RM}</div>
-                    </div>
-                `;
-                el.addEventListener('click', () => openLiftDetail(lift));
-                liftsList.appendChild(el);
-            });
-        }
-
-        function openLiftDetail(lift) {
-            currentLiftId = lift.id;
-            liftDetailTitle.textContent = lift.name;
-            liftsMainView.style.display = 'none';
-            liftDetailView.style.display = 'flex';
-            renderLiftDetail();
-        }
-
-        const btnSaveLiftSet = document.getElementById('btn-save-lift-set');
-        const liftWeightInput = document.getElementById('lift-weight-input');
-        const liftRepsInput = document.getElementById('lift-reps-input');
-        const liftHistoryList = document.getElementById('lift-history-list');
-
-        btnSaveLiftSet.addEventListener('click', () => {
-            const w = parseFloat(liftWeightInput.value);
-            const r = parseInt(liftRepsInput.value);
-            if (!isNaN(w) && w > 0 && !isNaN(r) && r > 0 && currentLiftId) {
-                const est1RM = Math.round(w * (1 + r / 30));
-                if (!state.liftSets[currentLiftId]) state.liftSets[currentLiftId] = [];
-                state.liftSets[currentLiftId].push({
-                    id: Date.now(),
-                    date: viewingDateString,
-                    weight: w,
-                    reps: r,
-                    est1RM: est1RM
-                });
-                saveState();
-                renderLiftDetail();
-                liftWeightInput.value = '';
-                liftRepsInput.value = '';
-            }
-        });
-
-        document.getElementById('btn-delete-lift').addEventListener('click', () => {
-            if (confirm('Delete this exercise and all its history?')) {
-                state.lifts = state.lifts.filter(l => l.id !== currentLiftId);
-                delete state.liftSets[currentLiftId];
-                saveState();
-                btnBackLifts.click();
-                renderLiftsTab();
-            }
-        });
-
-        function renderLiftDetail() {
-            liftHistoryList.innerHTML = '';
-            const sets = state.liftSets[currentLiftId] || [];
-
-            const todaySets = sets.filter(s => s.date === viewingDateString);
-            if (todaySets.length === 0) {
-                liftHistoryList.innerHTML = '<div style="font-size: 13px; color: var(--text-secondary);">No sets recorded today.</div>';
-            } else {
-                todaySets.forEach(set => {
-                    const el = document.createElement('div');
-                    el.className = 'set-item';
-                    el.innerHTML = `
-                        <div class="set-meta">
-                            <span>${set.weight} lbs × ${set.reps}</span>
-                        </div>
-                        <div style="display: flex; gap: 12px; align-items: center;">
-                            <span class="set-1rm">${set.est1RM} 1RM</span>
-                            <button class="btn-delete-set" data-id="${set.id}">×</button>
-                        </div>
-                    `;
-                    el.querySelector('.btn-delete-set').addEventListener('click', () => {
-                        state.liftSets[currentLiftId] = state.liftSets[currentLiftId].filter(s => s.id !== set.id);
-                        saveState();
-                        renderLiftDetail();
-                    });
-                    liftHistoryList.appendChild(el);
-                });
-            }
-
-            const svgGroup = document.getElementById('lift-chart-svg');
-            const pathLine = document.getElementById('lift-chart-line');
-            if (!svgGroup || !pathLine) return;
-
-            const texts = svgGroup.querySelectorAll('text');
-            texts.forEach(t => t.remove());
-
-            if (sets.length < 2) {
-                pathLine.setAttribute('d', '');
-                svgGroup.innerHTML += '<text x="50%" y="50%" fill="var(--text-secondary)" font-size="12" text-anchor="middle" dominant-baseline="middle">Add sets to see 1RM progression</text>';
-                return;
-            }
-
-            let max1RM = 0, min1RM = 9999;
-            sets.forEach(s => {
-                if (s.est1RM > max1RM) max1RM = s.est1RM;
-                if (s.est1RM < min1RM) min1RM = s.est1RM;
-            });
-
-            const rangeR = max1RM - min1RM || 1;
-            svgGroup.setAttribute('viewBox', `0 0 ${sets.length - 1} 100`);
-
-            let dPath = '';
-            sets.forEach((set, index) => {
-                const px = index;
-                const py = 100 - ((set.est1RM - min1RM) / rangeR) * 80 - 10;
-                dPath += (index === 0 ? 'M' : 'L') + `${px},${py} `;
-            });
-            pathLine.setAttribute('d', dPath.trim());
-            if (!svgGroup.querySelector('path')) {
-                svgGroup.appendChild(pathLine);
-            }
-        }
-
-        // Add Lift Modal
         const liftModal = document.getElementById('lift-modal');
         const liftNameInput = document.getElementById('lift-name-input');
         const liftGroupInput = document.getElementById('lift-group-input');
 
-        document.getElementById('btn-add-lift').addEventListener('click', () => {
-            liftNameInput.value = '';
-            liftGroupInput.value = currentPPL;
-            liftModal.classList.add('active');
+        let activeLiftId = null;
+
+        const GROUPS = [
+            { key: 'push', label: 'Push' },
+            { key: 'pull', label: 'Pull' },
+            { key: 'legs', label: 'Legs' }
+        ];
+
+        function getLatestLiftWeight(liftId) {
+            if (state.liftWeights && state.liftWeights[liftId] !== undefined) return state.liftWeights[liftId];
+            if (state.liftSets && state.liftSets[liftId] && state.liftSets[liftId].length > 0) {
+                return state.liftSets[liftId][state.liftSets[liftId].length - 1].weight;
+            }
+            return null;
+        }
+
+        function renderLiftsTab() {
+            if (!liftsAllGroups) return;
+            liftsAllGroups.innerHTML = '';
+            const unitName = state.unit === 'metric' ? 'kg' : 'lbs';
+
+            GROUPS.forEach(group => {
+                const liftsInGroup = state.lifts.filter(l => l.group === group.key);
+
+                const header = document.createElement('div');
+                header.style.cssText = 'font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; font-weight: var(--font-weight-medium); padding: 12px 0 6px; border-bottom: 1px solid var(--border-color);';
+                header.textContent = group.label;
+                liftsAllGroups.appendChild(header);
+
+                liftsInGroup.forEach(lift => {
+                    const w = getLatestLiftWeight(lift.id);
+                    const el = document.createElement('div');
+                    el.className = 'lift-item';
+                    el.style.cssText = 'display: flex; align-items: center; justify-content: space-between;';
+                    el.innerHTML = `
+                        <div class="lift-name">${lift.name}</div>
+                        <span style="font-size: 16px; color: var(--accent-primary); font-weight: var(--font-weight-medium);">${w !== null ? w + ' ' + unitName : '--'}</span>
+                    `;
+                    el.addEventListener('click', () => openLiftWeightModal(lift));
+                    liftsAllGroups.appendChild(el);
+                });
+
+                const addBtn = document.createElement('button');
+                addBtn.className = 'btn-text';
+                addBtn.textContent = '+ Add Exercise';
+                addBtn.style.cssText = 'font-size: 13px; padding: 6px 0;';
+                addBtn.addEventListener('click', () => {
+                    liftNameInput.value = '';
+                    liftGroupInput.value = group.key;
+                    liftModal.classList.add('active');
+                });
+                liftsAllGroups.appendChild(addBtn);
+            });
+        }
+
+        function openLiftWeightModal(lift) {
+            activeLiftId = lift.id;
+            liftWeightModalTitle.textContent = lift.name;
+            const existing = getLatestLiftWeight(lift.id);
+            liftWeightModalInput.value = existing !== null ? existing : '';
+            liftWeightModal.classList.add('active');
+            setTimeout(() => liftWeightModalInput.focus(), 100);
+        }
+
+        btnSaveLiftWeight.addEventListener('click', () => {
+            const w = parseFloat(liftWeightModalInput.value);
+            if (!isNaN(w) && w > 0 && activeLiftId !== null) {
+                if (!state.liftWeights) state.liftWeights = {};
+                state.liftWeights[activeLiftId] = w;
+                saveState();
+                renderLiftsTab();
+            }
+            liftWeightModal.classList.remove('active');
         });
 
-        document.getElementById('btn-cancel-lift').addEventListener('click', () => {
-            liftModal.classList.remove('active');
+        btnCancelLiftWeight.addEventListener('click', () => liftWeightModal.classList.remove('active'));
+
+        btnDeleteLiftInline.addEventListener('click', () => {
+            if (activeLiftId === null) return;
+            if (confirm('Delete this exercise?')) {
+                state.lifts = state.lifts.filter(l => l.id !== activeLiftId);
+                delete state.liftSets[activeLiftId];
+                if (state.liftWeights) delete state.liftWeights[activeLiftId];
+                saveState();
+                renderLiftsTab();
+                liftWeightModal.classList.remove('active');
+            }
         });
+
+        liftWeightModal.addEventListener('click', e => {
+            if (e.target === liftWeightModal) liftWeightModal.classList.remove('active');
+        });
+
+        document.getElementById('btn-cancel-lift').addEventListener('click', () => liftModal.classList.remove('active'));
 
         document.getElementById('btn-save-lift').addEventListener('click', () => {
             const name = liftNameInput.value.trim();
             const grp = liftGroupInput.value;
             if (name) {
-                state.lifts.push({
-                    id: Date.now(),
-                    name: name,
-                    group: grp
-                });
+                state.lifts.push({ id: Date.now(), name, group: grp });
                 saveState();
                 renderLiftsTab();
             }
@@ -1099,7 +1039,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (liftModal) {
-            liftModal.addEventListener('click', (e) => {
+            liftModal.addEventListener('click', e => {
                 if (e.target === liftModal) liftModal.classList.remove('active');
             });
         }
