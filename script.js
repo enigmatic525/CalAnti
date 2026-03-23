@@ -304,8 +304,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="overload-body">
                     <div style="font-size:32px; margin-bottom: 8px;">⚠️</div>
-                    <p style="color: #fff; font-size: 14px; font-weight: bold; margin: 0; text-shadow: none;">UNKNOWN FILE DETECTED</p>
-                    <p style="font-weight: normal; font-size: 11px; margin-top: 8px; color: #fff;">Your device's security could be compromised</p>
+                    <p style="color: #fff; font-size: 14px; font-weight: bold; margin: 0; text-shadow: none;">NOTICE: UNKNOWN FILE DETECTED</p>
+                    <p style="font-weight: normal; font-size: 11px; margin-top: 8px; color: #fff;">Device security may be compromised</p>
                     <button class="overload-btn" onclick="this.parentElement.parentElement.remove()">SCAN NOW</button>
                 </div>
             `;
@@ -746,8 +746,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // ------ WEIGHT TAB LOGIC
         const weightInput = document.getElementById('weight-input');
-        const btnWeightMinus = document.getElementById('btn-weight-minus');
-        const btnWeightPlus = document.getElementById('btn-weight-plus');
+        const btnWeightMinus = document.getElementById('btn-weight-minus');   // -.1
+        const btnWeightPlus = document.getElementById('btn-weight-plus');     // +.1
+        const btnWeightMinus1 = document.getElementById('btn-weight-minus-1'); // -1
+        const btnWeightPlus1 = document.getElementById('btn-weight-plus-1');   // +1
         const btnSaveWeight = document.getElementById('btn-save-weight');
         const weightChartToggles = document.querySelectorAll('#weight-chart-toggles .chart-toggle');
         let currentWeightRange = 'month';
@@ -773,6 +775,18 @@ document.addEventListener('DOMContentLoaded', () => {
             weightInput.value = (num + 0.1).toFixed(1);
         });
 
+        btnWeightMinus1.addEventListener('click', () => {
+            let num = parseFloat(weightInput.value);
+            if (isNaN(num)) num = 0;
+            weightInput.value = (num - 1).toFixed(1);
+        });
+
+        btnWeightPlus1.addEventListener('click', () => {
+            let num = parseFloat(weightInput.value);
+            if (isNaN(num)) num = 0;
+            weightInput.value = (num + 1).toFixed(1);
+        });
+
         btnSaveWeight.addEventListener('click', () => {
             const val = parseFloat(weightInput.value);
             if (!isNaN(val) && val > 0) {
@@ -780,7 +794,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveState();
                 renderWeightTab();
                 const orig = btnSaveWeight.textContent;
-                btnSaveWeight.textContent = 'Saved!';
+                btnSaveWeight.textContent = 'Saved ✓';
                 setTimeout(() => btnSaveWeight.textContent = orig, 1500);
             }
         });
@@ -795,28 +809,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const svgEl = document.getElementById('weight-chart-svg');
             const emptyEl = document.getElementById('weight-chart-empty');
-            const yAxisEl = document.getElementById('weight-y-axis');
             const xAxisEl = document.getElementById('weight-x-axis');
+            const trendLabelEl = document.getElementById('weight-trend-label');
+            const metricCurrentEl = document.getElementById('weight-metric-current');
+            const metricWeekEl = document.getElementById('weight-metric-week');
             if (!svgEl) return;
 
             const pathLine = document.getElementById('weight-chart-line');
             const daysMap = { 'week': 7, 'month': 30, 'year': 365 };
             const days = daysMap[currentWeightRange] || 30;
+            const unitName = state.unit === 'metric' ? 'kg' : 'lbs';
 
-            // Collect all dated data points
-            let allDates = [];
+            // Collect data points within range
             let dataPoints = [];
             let viewD = new Date(viewingDateString + 'T12:00:00');
             for (let i = days - 1; i >= 0; i--) {
                 let tempD = new Date(viewD.getTime() - i * 24 * 60 * 60 * 1000);
                 let dStr = getDateString(tempD);
-                allDates.push({ slotIndex: days - 1 - i, date: tempD, dateStr: dStr });
                 let w = state.weightHistory[dStr];
-                if (w) dataPoints.push({ slotIndex: days - 1 - i, y: w, date: tempD });
+                if (w) dataPoints.push({ slotIndex: days - 1 - i, y: w, date: tempD, dateStr: dStr });
             }
 
-            // Clear axes
-            if (yAxisEl) yAxisEl.innerHTML = '';
+            // --- Metrics row
+            const allWKeys = Object.keys(state.weightHistory).sort();
+            const latestW = allWKeys.length > 0 ? state.weightHistory[allWKeys[allWKeys.length - 1]] : null;
+            if (metricCurrentEl) metricCurrentEl.textContent = latestW ? `${latestW.toFixed(1)} ${unitName}` : '--';
+            if (trendLabelEl) trendLabelEl.textContent = latestW ? `Current: ${latestW.toFixed(1)} ${unitName}` : 'Current: --';
+
+            // Weekly change: compare last 7 days
+            if (metricWeekEl) {
+                const todayD = new Date(currentDateString + 'T12:00:00');
+                const sevenAgoStr = getDateString(new Date(todayD.getTime() - 7 * 24 * 60 * 60 * 1000));
+                const recentKeys = allWKeys.filter(k => k > sevenAgoStr);
+                const olderKeys = allWKeys.filter(k => k <= sevenAgoStr);
+                if (recentKeys.length > 0 && olderKeys.length > 0) {
+                    const recent = state.weightHistory[recentKeys[recentKeys.length - 1]];
+                    const older = state.weightHistory[olderKeys[olderKeys.length - 1]];
+                    const diff = recent - older;
+                    const sign = diff > 0 ? '+' : '';
+                    metricWeekEl.textContent = `${sign}${diff.toFixed(1)} ${unitName}`;
+                } else {
+                    metricWeekEl.textContent = '--';
+                }
+            }
+
+            // Clear x-axis
             if (xAxisEl) xAxisEl.innerHTML = '';
 
             if (dataPoints.length < 2) {
@@ -835,46 +872,27 @@ document.addEventListener('DOMContentLoaded', () => {
             minW -= yPad;
             const yRange = maxW - minW;
 
-            // --- Y-axis labels (4 ticks: top, 2/3, 1/3, bottom)
-            if (yAxisEl) {
-                const ticks = 4;
-                for (let t = 0; t < ticks; t++) {
-                    const frac = t / (ticks - 1);           // 0 = top, 1 = bottom
-                    const val = maxW - frac * yRange;
-                    const lbl = document.createElement('div');
-                    lbl.style.cssText = 'font-size: 10px; color: var(--text-secondary); line-height: 1; font-variant-numeric: tabular-nums;';
-                    lbl.textContent = val.toFixed(1);
-                    yAxisEl.appendChild(lbl);
-                }
-            }
-
-            // X range for stretching
-            const minSlot = Math.min(...dataPoints.map(p => p.slotIndex));
-            const maxSlot = Math.max(...dataPoints.map(p => p.slotIndex));
+            // X range
+            const minSlot = dataPoints[0].slotIndex;
+            const maxSlot = dataPoints[dataPoints.length - 1].slotIndex;
             const xRange = Math.max(1, maxSlot - minSlot);
 
-            // --- X-axis labels (pick evenly spaced dates from actual data)
+            // --- X-axis labels: evenly spaced flex items (like calorie chart)
             if (xAxisEl) {
-                xAxisEl.style.position = 'relative';
-                xAxisEl.style.height = '16px';
-
-                // Sort points by slot to pick labels
                 const sortedPoints = [...dataPoints].sort((a, b) => a.slotIndex - b.slotIndex);
-
-                // Pick up to 6 labels
-                const labelCount = Math.min(6, sortedPoints.length);
-                const labelIndices = new Set();
+                const labelCount = Math.min(7, sortedPoints.length);
+                const picked = [];
                 for (let i = 0; i < labelCount; i++) {
-                    labelIndices.add(Math.floor((i / Math.max(1, labelCount - 1)) * (sortedPoints.length - 1)));
+                    const idx = Math.round((i / Math.max(1, labelCount - 1)) * (sortedPoints.length - 1));
+                    picked.push(sortedPoints[idx]);
                 }
+                // Remove dupes
+                const seen = new Set();
+                const unique = picked.filter(p => { if (seen.has(p.slotIndex)) return false; seen.add(p.slotIndex); return true; });
 
-                labelIndices.forEach(idx => {
-                    const pt = sortedPoints[idx];
-                    const leftPct = ((pt.slotIndex - minSlot) / xRange) * 100;
-
+                unique.forEach(pt => {
                     const lbl = document.createElement('div');
-                    lbl.style.cssText = `position: absolute; left: ${leftPct}%; transform: translateX(calc(-50% + ${leftPct === 0 ? '10px' : leftPct >= 99 ? '-10px' : '0px'})); font-size: 10px; color: var(--text-secondary); white-space: nowrap;`;
-
+                    lbl.className = 'chart-label';
                     const fmt = currentWeightRange === 'year'
                         ? pt.date.toLocaleDateString('en-US', { month: 'short' })
                         : pt.date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
@@ -883,13 +901,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            // --- SVG path
-            svgEl.setAttribute('viewBox', `0 0 100 100`);
+            // --- SVG path (viewBox 0 0 100 100, percentage coords)
+            svgEl.setAttribute('viewBox', '0 0 100 100');
             let dPath = '';
-
-            // Sort to ensure line draws left to right
             const pathPoints = [...dataPoints].sort((a, b) => a.slotIndex - b.slotIndex);
-
             pathPoints.forEach((pt, index) => {
                 const px = ((pt.slotIndex - minSlot) / xRange) * 100;
                 const py = 100 - ((pt.y - minW) / yRange) * 100;

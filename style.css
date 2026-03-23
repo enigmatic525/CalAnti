@@ -135,7 +135,7 @@ body {
     padding: 24px 16px 12px 16px;
     border: 1px solid var(--border-color);
     position: relative;
-    height: 160px;
+    height: 145px;
     display: flex;
     flex-direction: column;
 }
@@ -713,11 +713,7 @@ body {
 
 #tab-weight.active {
     flex-direction: column;
-    gap: 0;
-}
-
-#tab-weight #weight-chart-section {
-    height: 240px;
+    gap: 24px;
 }
 
 @keyframes fadeIn {
